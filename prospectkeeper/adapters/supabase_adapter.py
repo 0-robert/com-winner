@@ -154,3 +154,42 @@ class SupabaseAdapter(IDataRepository):
         if response.data:
             return _row_to_contact(response.data[0])
         return None
+
+    # ── LinkedIn snapshot methods ──────────────────────────────────────────
+
+    async def save_linkedin_snapshot(self, snapshot: dict) -> None:
+        """Insert a new LinkedIn scrape snapshot row."""
+        self.client.table("linkedin_snapshots").insert(snapshot).execute()
+
+    async def get_latest_linkedin_snapshot(self, contact_id: str) -> Optional[dict]:
+        """Return the most recent snapshot for hash comparison, or None."""
+        response = (
+            self.client.table("linkedin_snapshots")
+            .select("profile_hash, current_title, current_org, headline, scraped_at")
+            .eq("contact_id", contact_id)
+            .order("scraped_at", desc=True)
+            .limit(1)
+            .execute()
+        )
+        return response.data[0] if response.data else None
+
+    async def get_all_linkedin_freshness(self) -> dict:
+        """Return {contact_id: {last_scraped_at, last_changed_at}} for all contacts."""
+        try:
+            response = self.client.table("contact_linkedin_freshness").select("*").execute()
+            return {r["contact_id"]: r for r in response.data}
+        except Exception:
+            return {}
+
+    async def get_latest_change_summary(self, contact_id: str) -> Optional[dict]:
+        """Return the most recent snapshot row where data actually changed."""
+        response = (
+            self.client.table("linkedin_snapshots")
+            .select("change_summary, scraped_at, current_title, current_org, headline")
+            .eq("contact_id", contact_id)
+            .eq("data_changed", True)
+            .order("scraped_at", desc=True)
+            .limit(1)
+            .execute()
+        )
+        return response.data[0] if response.data else None

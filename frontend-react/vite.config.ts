@@ -18,6 +18,11 @@ export default defineConfig({
         changeOrigin: true,
         rewrite: (path) => path.replace(/^\/api\/langfuse-stats/, '/langfuse-stats'),
       },
+      '/api/contacts': {
+        target: 'http://localhost:8002',
+        changeOrigin: true,
+        rewrite: (path) => path.replace(/^\/api\/contacts/, '/contacts'),
+      }
     }
   }
 })
