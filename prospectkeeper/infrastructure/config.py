@@ -21,6 +21,7 @@ class Config:
     anthropic_api_key: str
     langfuse_public_key: str
     langfuse_secret_key: str
+    langfuse_base_url: str
     zerobounce_api_key: str
 
     # Agent settings
@@ -36,6 +37,7 @@ class Config:
             "ANTHROPIC_API_KEY",
             "LANGFUSE_PUBLIC_KEY",
             "LANGFUSE_SECRET_KEY",
+            "LANGFUSE_BASE_URL",
         ]
         for key in required:
             if not os.getenv(key):
@@ -46,13 +48,13 @@ class Config:
                 f"Missing required environment variables: {', '.join(missing)}\n"
                 f"Copy .env.example to .env and fill in the values."
             )
-
         return cls(
             supabase_url=os.environ["SUPABASE_URL"],
             supabase_service_key=os.environ["SUPABASE_SERVICE_KEY"],
             anthropic_api_key=os.environ["ANTHROPIC_API_KEY"],
             langfuse_public_key=os.environ["LANGFUSE_PUBLIC_KEY"],
             langfuse_secret_key=os.environ["LANGFUSE_SECRET_KEY"],
+            langfuse_base_url=os.environ["LANGFUSE_BASE_URL"],
             zerobounce_api_key=os.getenv("ZEROBOUNCE_API_KEY", ""),
             batch_limit=int(os.getenv("BATCH_LIMIT", "50")),
             batch_concurrency=int(os.getenv("BATCH_CONCURRENCY", "5")),
