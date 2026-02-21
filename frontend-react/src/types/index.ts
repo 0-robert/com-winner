@@ -14,6 +14,15 @@ export interface EducationEntry {
     dateRange?: string;
 }
 
+export interface ChangeSummary {
+    title_from?: string | null;
+    title_to?: string | null;
+    org_from?: string | null;
+    org_to?: string | null;
+    headline_from?: string | null;
+    headline_to?: string | null;
+}
+
 export interface Contact {
     id: string;
     name: string;
@@ -31,6 +40,9 @@ export interface Contact {
     education?: EducationEntry[];
     skills?: string[];
     employment_confidence?: number;
+    // LinkedIn freshness
+    last_scraped_at?: string | null;
+    last_changed_at?: string | null;
 }
 
 export interface VerificationResult {
