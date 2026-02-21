@@ -13,7 +13,7 @@ from datetime import datetime
 from typing import List, Optional
 from dotenv import load_dotenv
 
-load_dotenv()
+load_dotenv(override=True)
 
 from prospectkeeper.domain.entities.contact import Contact, ContactStatus
 from prospectkeeper.domain.entities.verification_result import VerificationResult

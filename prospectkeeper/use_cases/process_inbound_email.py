@@ -18,7 +18,8 @@ from ..domain.interfaces.i_data_repository import IDataRepository
 logger = logging.getLogger(__name__)
 
 # Cheapest Claude model for parsing structured data from emails
-HAIKU_MODEL = "claude-3-5-haiku-latest"
+# Note: claude-3-5-haiku-latest was deprecated 2025-02-19
+HAIKU_MODEL = "claude-haiku-4-5-20251001"
 
 EMAIL_PARSE_SYSTEM_PROMPT = """You are a data-extraction assistant.
 You receive the body of an email reply from a contact who was asked to review
