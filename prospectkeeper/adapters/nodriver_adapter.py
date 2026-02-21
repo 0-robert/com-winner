@@ -323,16 +323,27 @@ class NoDriverAdapter(ILinkedInGateway):
         org_lower = organization.lower().strip()
 
         current_entries = [e for e in experience if e.get("isCurrent")]
-        exp_match = bool(org_lower) and any(
-            org_lower in (e.get("company") or "").lower() or
-            org_lower in (e.get("title") or "").lower()
-            for e in current_entries
-        )
+
+        # Find the specific current entry whose company (or title) matches the org.
+        # A person can have multiple concurrent "Present" roles (e.g. full-time + board
+        # position), so we must not blindly use current_entries[0].
+        def _entry_matches(e: dict) -> bool:
+            return (
+                org_lower in (e.get("company") or "").lower() or
+                org_lower in (e.get("title") or "").lower()
+            )
+
+        matched_entry = next((e for e in current_entries if _entry_matches(e)), None) if org_lower else None
+        exp_match = matched_entry is not None
         headline_match = bool(org_lower) and org_lower in headline.lower()
         still_at = exp_match or headline_match
 
         current_title: Optional[str] = None
-        if current_entries:
+        if exp_match and matched_entry:
+            # Use the title from the entry that actually matched the org.
+            current_title = matched_entry.get("title") or None
+        elif current_entries and not org_lower:
+            # No org supplied — just return the most recent current role.
             current_title = current_entries[0].get("title") or None
         elif headline_match:
             m = re.match(r"^(.+?)\s+at\s+.+$", headline, re.IGNORECASE)
@@ -341,7 +352,8 @@ class NoDriverAdapter(ILinkedInGateway):
         logger.info(
             f"[Tier2] {contact_name} @ {organization!r}: "
             f"still_at={still_at} title={current_title!r} "
-            f"(exp={exp_match} headline={headline_match})"
+            f"(exp={exp_match} headline={headline_match} "
+            f"current_roles={len(current_entries)})"
         )
 
         return LinkedInResult(
