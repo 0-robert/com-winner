@@ -3,12 +3,12 @@ VerifyContactUseCase - The Economic Brain.
 
 Implements 2-tier routing based on product tier:
 
-  Free Tier  — Email validation (ZeroBounce) + send confirmation email
+  Free Tier  — Send confirmation email to contact
                ("Are you still reachable at ___?")
-  Paid Tier  — Email validation + website scraping + Claude AI deep research
+  Paid Tier  — Website scraping + Claude AI deep research
                (finds missing info, replacements, updated contact details)
 
-Escalates to Claude only when cheaper methods fail to produce confidence.
+Escalates to Claude only when website scraping fails to produce confidence.
 Flags for human review if all tiers are exhausted without confidence.
 """
 
@@ -21,10 +21,6 @@ from ..domain.entities.agent_economics import AgentEconomics
 from ..domain.entities.verification_result import VerificationResult
 from ..domain.interfaces.i_scraper_gateway import IScraperGateway
 from ..domain.interfaces.i_ai_gateway import IAIGateway
-from ..domain.interfaces.i_email_verification_gateway import (
-    IEmailVerificationGateway,
-    EmailStatus,
-)
 from ..domain.interfaces.i_email_sender_gateway import IEmailSenderGateway
 
 logger = logging.getLogger(__name__)
@@ -46,12 +42,10 @@ class VerifyContactUseCase:
         self,
         scraper: IScraperGateway,
         ai: IAIGateway,
-        email_verifier: IEmailVerificationGateway,
         email_sender: IEmailSenderGateway,
     ):
         self.scraper = scraper
         self.ai = ai
-        self.email_verifier = email_verifier
         self.email_sender = email_sender
 
     async def execute(self, request: VerifyContactRequest) -> VerificationResult:
@@ -66,32 +60,11 @@ class VerifyContactUseCase:
             f"{contact.name} @ {contact.organization}"
         )
 
-        # ── Step 1: Email Validation (both tiers) ────────────────────────────
-        email_result = await self.email_verifier.verify_email(contact.email)
-        economics.zerobounce_cost_usd += email_result.cost_usd
-        economics.highest_tier_used = 1
-
-        if not email_result.is_valid and email_result.status not in (
-            EmailStatus.CATCH_ALL,
-            EmailStatus.UNKNOWN,
-        ):
-            # Definitively invalid — mark inactive without escalating
-            logger.info(
-                f"[Email Check] Email invalid for {contact.name}: {email_result.status}"
-            )
-            economics.verified = True
-            return VerificationResult(
-                contact_id=contact.id,
-                status=ContactStatus.INACTIVE,
-                economics=economics,
-                notes=f"Email {email_result.status.value}: {email_result.sub_status}",
-            )
-
         # ── Free Tier: Send confirmation email ───────────────────────────────
         if tier == "free":
+            economics.highest_tier_used = 1
             logger.info(
-                f"[Free Tier] Email valid/unknown for {contact.name}. "
-                f"Sending confirmation email."
+                f"[Free Tier] Sending confirmation email to {contact.name}."
             )
             send_result = await self.email_sender.send_confirmation(
                 contact=contact,
@@ -117,7 +90,7 @@ class VerifyContactUseCase:
 
         # ── Paid Tier: Website Scraping + Claude AI ──────────────────────────
 
-        # Step 2: District/Company Website Scraping
+        # Step 1: District/Company Website Scraping
         scrape_result = await self.scraper.find_contact_on_district_site(
             contact_name=contact.name,
             organization=contact.organization,
@@ -142,7 +115,7 @@ class VerifyContactUseCase:
                     notes="Confirmed via public website",
                 )
 
-        # Step 3: Claude AI Deep Research
+        # Step 2: Claude AI Deep Research
         logger.info(f"[Paid Tier] Escalating to Claude for {contact.name}")
         economics.highest_tier_used = 2
 
