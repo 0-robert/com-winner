@@ -142,3 +142,15 @@ class SupabaseAdapter(IDataRepository):
         row["created_at"] = contact.created_at.isoformat()
         self.client.table("contacts").insert(row).execute()
         return contact
+
+    async def get_contact_by_email(self, email: str) -> Optional[Contact]:
+        response = (
+            self.client.table("contacts")
+            .select("*")
+            .eq("email", email)
+            .limit(1)
+            .execute()
+        )
+        if response.data:
+            return _row_to_contact(response.data[0])
+        return None

@@ -51,3 +51,8 @@ class IDataRepository(ABC):
     async def insert_contact(self, contact: Contact) -> Contact:
         """Insert a brand new replacement contact."""
         pass
+
+    @abstractmethod
+    async def get_contact_by_email(self, email: str) -> Optional[Contact]:
+        """Look up a contact by their email address."""
+        pass
