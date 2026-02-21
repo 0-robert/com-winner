@@ -42,18 +42,6 @@ class TestConfigFromEnvSuccess:
         assert config.langfuse_public_key == "pk-langfuse-test"
         assert config.langfuse_secret_key == "sk-langfuse-test"
 
-    def test_zerobounce_key_defaults_to_empty_string_when_absent(self, monkeypatch):
-        set_required_env(monkeypatch)
-        monkeypatch.delenv("ZEROBOUNCE_API_KEY", raising=False)
-        config = Config.from_env()
-        assert config.zerobounce_api_key == ""
-
-    def test_zerobounce_key_read_from_env_when_set(self, monkeypatch):
-        set_required_env(monkeypatch)
-        monkeypatch.setenv("ZEROBOUNCE_API_KEY", "zb-key-xyz")
-        config = Config.from_env()
-        assert config.zerobounce_api_key == "zb-key-xyz"
-
     def test_batch_limit_defaults_to_50(self, monkeypatch):
         set_required_env(monkeypatch)
         monkeypatch.delenv("BATCH_LIMIT", raising=False)

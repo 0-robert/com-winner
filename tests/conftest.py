@@ -19,10 +19,6 @@ from prospectkeeper.domain.entities.agent_economics import AgentEconomics
 from prospectkeeper.domain.entities.contact import Contact, ContactStatus
 from prospectkeeper.domain.entities.verification_result import VerificationResult
 from prospectkeeper.domain.interfaces.i_ai_gateway import AIResearchResult
-from prospectkeeper.domain.interfaces.i_email_verification_gateway import (
-    EmailStatus,
-    EmailVerificationResult,
-)
 from prospectkeeper.domain.interfaces.i_email_sender_gateway import SendEmailResult
 from prospectkeeper.domain.interfaces.i_scraper_gateway import ScraperResult
 
@@ -63,7 +59,6 @@ def make_contact(
 
 def make_economics(
     contact_id: Optional[str] = None,
-    zerobounce_cost_usd: float = 0.0,
     claude_cost_usd: float = 0.0,
     tokens_used: int = 0,
     verified: bool = False,
@@ -74,7 +69,6 @@ def make_economics(
     """Create AgentEconomics with sensible test defaults."""
     return AgentEconomics(
         contact_id=contact_id or str(uuid.uuid4()),
-        zerobounce_cost_usd=zerobounce_cost_usd,
         claude_cost_usd=claude_cost_usd,
         tokens_used=tokens_used,
         verified=verified,
@@ -111,32 +105,6 @@ def make_verification_result(
 # ─────────────────────────────────────────────────────────────────────────────
 # Gateway result factories
 # ─────────────────────────────────────────────────────────────────────────────
-
-
-def make_email_result(
-    email: str = "jane.smith@acme.com",
-    status: EmailStatus = EmailStatus.VALID,
-    is_valid: bool = True,
-    cost_usd: float = 0.004,
-    sub_status: Optional[str] = None,
-    error: Optional[str] = None,
-) -> EmailVerificationResult:
-    deliverability = (
-        "Deliverable"
-        if is_valid
-        else "Risky"
-        if status in (EmailStatus.CATCH_ALL, EmailStatus.UNKNOWN)
-        else "Undeliverable"
-    )
-    return EmailVerificationResult(
-        email=email,
-        status=status,
-        deliverability=deliverability,
-        is_valid=is_valid,
-        cost_usd=cost_usd,
-        sub_status=sub_status,
-        error=error,
-    )
 
 
 def make_scraper_result(
@@ -196,14 +164,6 @@ def make_ai_result(
 # ─────────────────────────────────────────────────────────────────────────────
 # Mock gateway fixtures (inject into use-case tests)
 # ─────────────────────────────────────────────────────────────────────────────
-
-
-@pytest.fixture
-def mock_email_verifier():
-    """AsyncMock for IEmailVerificationGateway. Defaults to returning a valid email."""
-    mock = AsyncMock()
-    mock.verify_email.return_value = make_email_result()
-    return mock
 
 
 @pytest.fixture

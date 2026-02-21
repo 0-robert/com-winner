@@ -2,8 +2,7 @@
 Tests for VerifyContactUseCase — the Economic Brain.
 
 Every routing path is exhaustively tested:
-  - Email validation short-circuits on definitive invalids (both tiers)
-  - Free tier: valid email → confirmation email sent → PENDING_CONFIRMATION
+  - Free tier: send confirmation email → PENDING_CONFIRMATION
   - Free tier: confirmation email fails → flagged for human review
   - Paid tier: website scraper confirms active
   - Paid tier: website fails → Claude AI research
@@ -13,15 +12,12 @@ Economics tracking is verified independently for each path.
 """
 
 import pytest
-from unittest.mock import AsyncMock, call
 
 from prospectkeeper.domain.entities.contact import ContactStatus
-from prospectkeeper.domain.interfaces.i_email_verification_gateway import EmailStatus
 from prospectkeeper.use_cases.verify_contact import VerifyContactRequest, VerifyContactUseCase
 from tests.conftest import (
     make_ai_result,
     make_contact,
-    make_email_result,
     make_scraper_result,
     make_send_email_result,
 )
@@ -33,125 +29,22 @@ from tests.conftest import (
 
 
 @pytest.fixture
-def use_case(mock_scraper, mock_ai, mock_email_verifier, mock_email_sender):
+def use_case(mock_scraper, mock_ai, mock_email_sender):
     return VerifyContactUseCase(
         scraper=mock_scraper,
         ai=mock_ai,
-        email_verifier=mock_email_verifier,
         email_sender=mock_email_sender,
     )
 
 
 # ─────────────────────────────────────────────────────────────────────────────
-# Email validation — short-circuit on definitive invalids (both tiers)
-# ─────────────────────────────────────────────────────────────────────────────
-
-
-@pytest.mark.asyncio
-class TestEmailValidation:
-    @pytest.mark.parametrize("bad_status", [
-        EmailStatus.INVALID,
-        EmailStatus.SPAMTRAP,
-        EmailStatus.ABUSE,
-        EmailStatus.DO_NOT_MAIL,
-    ])
-    async def test_definitively_invalid_email_returns_inactive(
-        self, bad_status, use_case, mock_email_verifier
-    ):
-        mock_email_verifier.verify_email.return_value = make_email_result(
-            status=bad_status, is_valid=False
-        )
-        contact = make_contact()
-        result = await use_case.execute(VerifyContactRequest(contact=contact))
-        assert result.status == ContactStatus.INACTIVE
-
-    @pytest.mark.parametrize("bad_status", [
-        EmailStatus.INVALID,
-        EmailStatus.SPAMTRAP,
-        EmailStatus.ABUSE,
-        EmailStatus.DO_NOT_MAIL,
-    ])
-    async def test_definitively_invalid_email_does_not_call_scraper(
-        self, bad_status, use_case, mock_email_verifier, mock_scraper
-    ):
-        mock_email_verifier.verify_email.return_value = make_email_result(
-            status=bad_status, is_valid=False
-        )
-        await use_case.execute(VerifyContactRequest(contact=make_contact()))
-        mock_scraper.find_contact_on_district_site.assert_not_called()
-
-    @pytest.mark.parametrize("bad_status", [
-        EmailStatus.INVALID,
-        EmailStatus.SPAMTRAP,
-        EmailStatus.ABUSE,
-        EmailStatus.DO_NOT_MAIL,
-    ])
-    async def test_definitively_invalid_email_does_not_call_ai(
-        self, bad_status, use_case, mock_email_verifier, mock_ai
-    ):
-        mock_email_verifier.verify_email.return_value = make_email_result(
-            status=bad_status, is_valid=False
-        )
-        await use_case.execute(VerifyContactRequest(contact=make_contact()))
-        mock_ai.research_contact.assert_not_called()
-
-    async def test_invalid_email_marks_economics_verified(
-        self, use_case, mock_email_verifier
-    ):
-        mock_email_verifier.verify_email.return_value = make_email_result(
-            status=EmailStatus.INVALID, is_valid=False
-        )
-        result = await use_case.execute(VerifyContactRequest(contact=make_contact()))
-        assert result.economics.verified is True
-
-    async def test_invalid_email_accumulates_zerobounce_cost(
-        self, use_case, mock_email_verifier
-    ):
-        mock_email_verifier.verify_email.return_value = make_email_result(
-            status=EmailStatus.INVALID, is_valid=False, cost_usd=0.004
-        )
-        result = await use_case.execute(VerifyContactRequest(contact=make_contact()))
-        assert result.economics.zerobounce_cost_usd == pytest.approx(0.004)
-
-    async def test_invalid_email_highest_tier_is_1(
-        self, use_case, mock_email_verifier
-    ):
-        mock_email_verifier.verify_email.return_value = make_email_result(
-            status=EmailStatus.INVALID, is_valid=False
-        )
-        result = await use_case.execute(VerifyContactRequest(contact=make_contact()))
-        assert result.economics.highest_tier_used == 1
-
-    async def test_invalid_email_notes_contains_status(
-        self, use_case, mock_email_verifier
-    ):
-        mock_email_verifier.verify_email.return_value = make_email_result(
-            status=EmailStatus.SPAMTRAP, is_valid=False, sub_status="spam_trap_list"
-        )
-        result = await use_case.execute(VerifyContactRequest(contact=make_contact()))
-        assert "spamtrap" in result.notes
-
-    # Invalid email should apply regardless of tier parameter
-    async def test_invalid_email_returns_inactive_even_for_paid_tier(
-        self, use_case, mock_email_verifier
-    ):
-        mock_email_verifier.verify_email.return_value = make_email_result(
-            status=EmailStatus.INVALID, is_valid=False
-        )
-        result = await use_case.execute(
-            VerifyContactRequest(contact=make_contact(), tier="paid")
-        )
-        assert result.status == ContactStatus.INACTIVE
-
-
-# ─────────────────────────────────────────────────────────────────────────────
-# Free Tier: Valid email → send confirmation email
+# Free Tier: Send confirmation email
 # ─────────────────────────────────────────────────────────────────────────────
 
 
 @pytest.mark.asyncio
 class TestFreeTierConfirmation:
-    async def test_valid_email_sends_confirmation_and_returns_pending(
+    async def test_sends_confirmation_and_returns_pending(
         self, use_case, mock_email_sender
     ):
         result = await use_case.execute(
@@ -193,18 +86,6 @@ class TestFreeTierConfirmation:
             VerifyContactRequest(contact=make_contact(), tier="free")
         )
         mock_ai.research_contact.assert_not_called()
-
-    async def test_ambiguous_email_still_sends_confirmation(
-        self, use_case, mock_email_verifier, mock_email_sender
-    ):
-        mock_email_verifier.verify_email.return_value = make_email_result(
-            status=EmailStatus.CATCH_ALL, is_valid=False
-        )
-        result = await use_case.execute(
-            VerifyContactRequest(contact=make_contact(), tier="free")
-        )
-        assert result.status == ContactStatus.PENDING_CONFIRMATION
-        mock_email_sender.send_confirmation.assert_called_once()
 
     async def test_confirmation_failure_flags_for_review(
         self, use_case, mock_email_sender
@@ -509,7 +390,7 @@ class TestPaidTierClaude:
         )
 
     async def test_scraper_raw_text_passed_as_context_to_claude(
-        self, mock_scraper, mock_ai, mock_email_verifier, mock_email_sender
+        self, mock_scraper, mock_ai, mock_email_sender
     ):
         """When scraper succeeds but person not found, raw_text is passed to Claude."""
         mock_scraper.find_contact_on_district_site.return_value = make_scraper_result(
@@ -521,7 +402,6 @@ class TestPaidTierClaude:
         use_case = VerifyContactUseCase(
             scraper=mock_scraper,
             ai=mock_ai,
-            email_verifier=mock_email_verifier,
             email_sender=mock_email_sender,
         )
         await use_case.execute(
@@ -586,7 +466,7 @@ class TestPaidTierAllStepsExhausted:
         assert "exhausted" in result.notes.lower() or "review" in result.notes.lower()
 
     async def test_all_steps_exhausted_when_claude_fails(
-        self, mock_scraper, mock_ai, mock_email_verifier, mock_email_sender
+        self, mock_scraper, mock_ai, mock_email_sender
     ):
         """claude success=False also leads to human review."""
         mock_scraper.find_contact_on_district_site.return_value = make_scraper_result(
@@ -598,7 +478,6 @@ class TestPaidTierAllStepsExhausted:
         use_case = VerifyContactUseCase(
             scraper=mock_scraper,
             ai=mock_ai,
-            email_verifier=mock_email_verifier,
             email_sender=mock_email_sender,
         )
         result = await use_case.execute(

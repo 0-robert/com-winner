@@ -17,16 +17,19 @@ Authentication:
     "dev-key" when unset so local testing works without configuration).
 """
 
+import base64
 import hashlib
 import json
 import logging
 import os
 import sys
 import time
-from typing import Optional
+from typing import List, Optional
 
+import httpx
 from dotenv import load_dotenv
 from fastapi import FastAPI, Header, HTTPException, status
+from fastapi.middleware.cors import CORSMiddleware
 from pydantic import BaseModel, Field, HttpUrl
 
 # ── Bootstrap ──────────────────────────────────────────────────────────────
@@ -48,6 +51,15 @@ logger = logging.getLogger(__name__)
 # ── API key guard ──────────────────────────────────────────────────────────
 _API_KEY = os.environ.get("LINKEDIN_API_KEY", "dev-key")
 
+# ── Langfuse credentials ───────────────────────────────────────────────────
+_LANGFUSE_PUBLIC_KEY = os.environ.get("LANGFUSE_PUBLIC_KEY", "")
+_LANGFUSE_SECRET_KEY = os.environ.get("LANGFUSE_SECRET_KEY", "")
+_LANGFUSE_BASE_URL = os.environ.get("LANGFUSE_BASE_URL", "https://cloud.langfuse.com")
+
+# Sonnet 4.6 pricing (per token)
+_SONNET_INPUT_COST_PER_TOKEN = 3.0 / 1_000_000
+_SONNET_OUTPUT_COST_PER_TOKEN = 15.0 / 1_000_000
+
 
 def _require_api_key(x_api_key: str = Header(..., description="Service API key")) -> None:
     """Dependency: reject requests with an invalid X-API-Key header."""
@@ -60,7 +72,7 @@ def _require_api_key(x_api_key: str = Header(..., description="Service API key")
 
 # ── App ────────────────────────────────────────────────────────────────────
 app = FastAPI(
-    title="LinkedIn Scraper API",
+    title="ProspectKeeper API",
     description=(
         "Headless LinkedIn profile scraper backed by **NoDriverAdapter**.\n\n"
         "Returns structured profile data: name, headline, location, full experience "
@@ -72,6 +84,13 @@ app = FastAPI(
     version="1.0.0",
     contact={"name": "ProspectKeeper"},
     license_info={"name": "Private"},
+)
+
+app.add_middleware(
+    CORSMiddleware,
+    allow_origins=["http://localhost:5173"],
+    allow_methods=["GET", "POST"],
+    allow_headers=["*"],
 )
 
 
@@ -140,6 +159,10 @@ class ScrapeResponse(BaseModel):
         None,
         description="True if the contact appears to still work at `organization`. Null when `organization` was not supplied.",
     )
+    employment_confidence: float = Field(
+        0.0,
+        description="0–1 score reflecting how conclusively the scraper determined employment status. 0.92=conclusive, 0.40=profile found but unclear, 0.15=scrape failed.",
+    )
     current_title: Optional[str] = Field(None, description="Most recent job title.")
     current_organization: Optional[str] = Field(None, description="Populated with `organization` when `still_at_organization=True`.")
 
@@ -158,6 +181,29 @@ class ScrapeResponse(BaseModel):
     scrape_duration_seconds: Optional[float] = Field(None, description="Wall-clock time taken for the scrape.")
 
 
+# ── Langfuse stats schema ──────────────────────────────────────────────────
+
+class GenerationSummary(BaseModel):
+    name: Optional[str]
+    model: Optional[str]
+    input_tokens: int
+    output_tokens: int
+    cost_usd: float
+    start_time: Optional[str]
+
+
+class LangfuseStatsResponse(BaseModel):
+    total_calls: int = Field(..., description="Total number of Claude API calls recorded")
+    total_input_tokens: int
+    total_output_tokens: int
+    total_tokens: int
+    total_cost_usd: float
+    avg_cost_per_call: float
+    recent: List[GenerationSummary] = Field(..., description="Most recent 10 generations")
+    langfuse_dashboard_url: str
+
+
+# ── Singleton adapter (one browser session pool) ───────────────────────────
 # ── Singleton adapters ─────────────────────────────────────────────────────
 _adapter = NoDriverAdapter()
 
@@ -228,6 +274,84 @@ async def health() -> dict:
     return {"status": "ok"}
 
 
+@app.get(
+    "/langfuse-stats",
+    response_model=LangfuseStatsResponse,
+    summary="Claude API usage from Langfuse",
+    description="Queries the Langfuse REST API and returns aggregated token/cost stats for all Claude generations.",
+    tags=["Observability"],
+)
+async def langfuse_stats() -> LangfuseStatsResponse:
+    if not _LANGFUSE_PUBLIC_KEY or not _LANGFUSE_SECRET_KEY:
+        raise HTTPException(
+            status_code=503,
+            detail="Langfuse credentials not configured (LANGFUSE_PUBLIC_KEY / LANGFUSE_SECRET_KEY).",
+        )
+
+    auth_bytes = f"{_LANGFUSE_PUBLIC_KEY}:{_LANGFUSE_SECRET_KEY}".encode()
+    auth_header = "Basic " + base64.b64encode(auth_bytes).decode()
+
+    async with httpx.AsyncClient(timeout=15.0) as client:
+        resp = await client.get(
+            f"{_LANGFUSE_BASE_URL}/api/public/observations",
+            params={"type": "GENERATION", "limit": 50},
+            headers={"Authorization": auth_header},
+        )
+
+    if resp.status_code != 200:
+        logger.error(f"[Langfuse] API error {resp.status_code}: {resp.text[:300]}")
+        raise HTTPException(
+            status_code=502,
+            detail=f"Langfuse API returned {resp.status_code}.",
+        )
+
+    data = resp.json()
+    observations = data.get("data", [])
+    meta = data.get("meta", {})
+    total_pages_items = meta.get("totalItems", len(observations))
+
+    total_input = 0
+    total_output = 0
+    total_cost = 0.0
+    recent: List[GenerationSummary] = []
+
+    for obs in observations:
+        usage = obs.get("usage") or {}
+        inp = usage.get("input") or 0
+        out = usage.get("output") or 0
+
+        # Prefer Langfuse-calculated cost; fall back to manual pricing
+        cost = obs.get("calculatedTotalCost")
+        if cost is None:
+            cost = inp * _SONNET_INPUT_COST_PER_TOKEN + out * _SONNET_OUTPUT_COST_PER_TOKEN
+
+        total_input += inp
+        total_output += out
+        total_cost += cost
+
+        if len(recent) < 10:
+            recent.append(GenerationSummary(
+                name=obs.get("name"),
+                model=obs.get("model"),
+                input_tokens=inp,
+                output_tokens=out,
+                cost_usd=round(cost, 6),
+                start_time=obs.get("startTime"),
+            ))
+
+    n = len(observations)
+    return LangfuseStatsResponse(
+        total_calls=total_pages_items,
+        total_input_tokens=total_input,
+        total_output_tokens=total_output,
+        total_tokens=total_input + total_output,
+        total_cost_usd=round(total_cost, 6),
+        avg_cost_per_call=round(total_cost / n, 6) if n > 0 else 0.0,
+        recent=recent,
+        langfuse_dashboard_url=f"{_LANGFUSE_BASE_URL}",
+    )
+
+
 @app.post(
     "/scrape",
     response_model=ScrapeResponse,
@@ -281,6 +405,12 @@ async def scrape_profile(
         [EducationEntry(**e) for e in result.education] if result.education else None
     )
 
+    if not result.success or result.blocked:
+        employment_confidence = 0.15
+    elif result.still_at_organization is not None:
+        employment_confidence = 0.92
+    else:
+        employment_confidence = 0.40
     # ── Save LinkedIn snapshot for freshness tracking ───────────────────────
     if result.success and request.contact_id and _supabase and _has_meaningful_data(
         result.current_title, result.headline, result.experience, result.education
@@ -332,6 +462,7 @@ async def scrape_profile(
         blocked=result.blocked,
         error=result.error,
         still_at_organization=result.still_at_organization,
+        employment_confidence=employment_confidence,
         current_title=result.current_title,
         current_organization=result.current_organization,
         profile_url=result.profile_url,
