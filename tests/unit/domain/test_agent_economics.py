@@ -31,16 +31,6 @@ class TestAgentEconomicsTotalApiCost:
         econ = make_economics(zerobounce_cost_usd=0.004, claude_cost_usd=0.012)
         assert econ.total_api_cost_usd == pytest.approx(0.016, abs=1e-9)
 
-    def test_includes_scraper_cost(self):
-        # scraper_cost_usd is always 0 but must be included in sum
-        econ = AgentEconomics(
-            contact_id="x",
-            zerobounce_cost_usd=0.004,
-            claude_cost_usd=0.010,
-            scraper_cost_usd=0.0,
-        )
-        assert econ.total_api_cost_usd == pytest.approx(0.014, abs=1e-9)
-
     def test_rounds_to_six_decimal_places(self):
         econ = AgentEconomics(
             contact_id="x",

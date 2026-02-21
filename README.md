@@ -78,51 +78,41 @@ graph TD
 
 ## 2. Tiered Verification Engine
 
-The economic brain of the system. Each tier is only invoked if cheaper tiers fail to produce a confident result.
+The economic brain of the system. Contacts are placed into either the Free or Paid tier.
 
 ```mermaid
 flowchart TD
-    START([Contact to Verify]) --> T1A
+    START([Contact to Verify]) --> TIER_CHECK{Contact Tier?}
 
-    subgraph Tier1A ["Tier 1a — Email Validation (ZeroBounce, ~$0.004/call)"]
-        T1A{Email valid?}
+    TIER_CHECK -->|Free| FREE_TIER
+    TIER_CHECK -->|Paid| PAID_TIER
+
+    subgraph FREE_TIER ["Free Tier — Email Check & Confirmation"]
+        E_CHECK{ZeroBounce Email Check}
+        E_CHECK -->|INVALID / SPAM| INACTIVE_EMAIL([INACTIVE])
+        E_CHECK -->|VALID| SEND_CONFIRM[Send Confirmation Email]
+        SEND_CONFIRM --> PENDING([PENDING_CONFIRMATION])
     end
 
-    T1A -->|INVALID / SPAMTRAP / ABUSE / DO_NOT_MAIL| INACTIVE_EMAIL([INACTIVE — no escalation])
-    T1A -->|VALID / CATCH_ALL / UNKNOWN| T1B
-
-    subgraph Tier1B ["Tier 1b — Website Scraping (BS4 / httpx, free)"]
-        T1B{Name found on company site?}
+    subgraph PAID_TIER ["Paid Tier — AI Web Research"]
+        P_CHECK{ZeroBounce Email Check}
+        P_CHECK -->|INVALID| SCRAPE_SITE[Scrape District Site]
+        P_CHECK -->|VALID| ACTIVE_SCRAPE([ACTIVE])
+        SCRAPE_SITE --> CLAUDE[Claude AI Analysis]
+        
+        CLAUDE -->|Active| ACTIVE_AI([ACTIVE])
+        CLAUDE -->|Inactive + replacement found| INACTIVE_REPLACE([INACTIVE — replacement inserted])
+        CLAUDE -->|Inactive, no replacement| INACTIVE_NO([INACTIVE — no replacement])
+        CLAUDE -->|Uncertain / Error| HUMAN([UNKNOWN — flagged for human review])
     end
-
-    T1B -->|Yes| ACTIVE_SCRAPE([ACTIVE — confirmed via website])
-    T1B -->|No / site missing| T2
-
-    subgraph Tier2 ["Tier 2 — LinkedIn via CamoUFox (free, local compute)"]
-        T2{Still at org on LinkedIn?}
-    end
-
-    T2 -->|Yes| ACTIVE_LI([ACTIVE — confirmed via LinkedIn])
-    T2 -->|No / blocked / unavailable| T3
-
-    subgraph Tier3 ["Tier 3 — Claude AI Deep Research (Sonnet, ~$0.003–0.02/call)"]
-        T3{Claude verdict?}
-    end
-
-    T3 -->|Active| ACTIVE_AI([ACTIVE — confirmed via Claude])
-    T3 -->|Inactive + replacement found| INACTIVE_REPLACE([INACTIVE — replacement inserted])
-    T3 -->|Inactive, no replacement| INACTIVE_NO([INACTIVE — no replacement])
-    T3 -->|Uncertain / API error| HUMAN([UNKNOWN — flagged for human review])
 ```
 
 ### Cost Model
 
-| Tier | Service | Cost | When used |
-|------|---------|------|-----------|
-| 1a | ZeroBounce email validation | ~$0.004 / credit | Always (first check) |
-| 1b | httpx + BeautifulSoup scraping | $0.00 | When email is valid/unknown |
-| 2 | CamoUFox LinkedIn (headless Firefox) | $0.00 | When scraping fails |
-| 3 | Claude Sonnet 4.6 via Helicone | ~$0.003–$0.025 / call | When LinkedIn fails |
+| Tier | Services Used | Cost Per Contact | Features |
+|------|---------------|-------------------|----------|
+| **Free** | ZeroBounce + Resend Email | ~$0.004 | Checks if email exists, sends "Are you still reachable?" confirmation |
+| **Paid** | ZeroBounce + BS4 Scraper + Claude 3.5 Sonnet | ~$0.01 – $0.05 | Validates email, scrapes employer website, uses AI to find replacements for departed staff |
 
 ---
 
