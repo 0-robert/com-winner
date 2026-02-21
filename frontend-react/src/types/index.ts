@@ -30,6 +30,7 @@ export interface Contact {
     experience?: ExperienceEntry[];
     education?: EducationEntry[];
     skills?: string[];
+    employment_confidence?: number;
 }
 
 export interface VerificationResult {
