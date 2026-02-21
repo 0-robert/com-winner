@@ -14,6 +14,7 @@ from ..adapters.email_sender_adapter import EmailSenderAdapter
 from ..use_cases.verify_contact import VerifyContactUseCase
 from ..use_cases.calculate_roi import CalculateROIUseCase
 from ..use_cases.process_batch import ProcessBatchUseCase
+from ..use_cases.process_inbound_email import ProcessInboundEmailUseCase
 
 
 class Container:
@@ -49,4 +50,8 @@ class Container:
             repository=self.repository,
             verify_use_case=self.verify_use_case,
             roi_use_case=self.roi_use_case,
+        )
+        self.process_inbound_email_use_case = ProcessInboundEmailUseCase(
+            repository=self.repository,
+            anthropic_api_key=config.anthropic_api_key,
         )

@@ -1,17 +1,38 @@
 """
 Webhook adapter — receives inbound email replies via Zapier POST.
 Run alongside Streamlit on a separate port (8502).
+
+On receipt, delegates to ProcessInboundEmailUseCase which:
+  1. Parses the reply body with Claude 3.5 Haiku (cheapest model)
+  2. Diffs the parsed info against the existing contact record
+  3. Updates any changed fields in Supabase
 """
 
 import logging
 from datetime import datetime
+from typing import Optional
+
 from fastapi import FastAPI, Request
 import uvicorn
 from fastapi.middleware.cors import CORSMiddleware
 
+from ..use_cases.process_inbound_email import (
+    ProcessInboundEmailUseCase,
+    ContactUpdateResult,
+)
+
 logger = logging.getLogger(__name__)
 
 app = FastAPI()
+
+# Holds the use-case instance; set by `configure()` before server starts
+_inbound_email_use_case: Optional[ProcessInboundEmailUseCase] = None
+
+
+def configure(use_case: ProcessInboundEmailUseCase) -> None:
+    """Inject the fully-wired use case into the webhook module."""
+    global _inbound_email_use_case
+    _inbound_email_use_case = use_case
 
 
 app.add_middleware(
@@ -20,7 +41,6 @@ app.add_middleware(
     allow_methods=["*"],
     allow_headers=["*"],
 )
-
 
 
 @app.post("/webhooks/inbound-email")
@@ -38,14 +58,47 @@ async def handle_inbound_email(request: Request):
     print(f"   Body:    {body[:200]}...")
     print(f"   Time:    {datetime.utcnow().isoformat()}\n")
 
-    # TODO: save to Supabase, trigger verification logic, etc.
+    # ── Parse with Claude & update contact ────────────────────────────────
+    if _inbound_email_use_case is None:
+        logger.error("[Webhook] ProcessInboundEmailUseCase not configured!")
+        return {
+            "status": "error",
+            "detail": "Email processing not configured",
+            "from": sender,
+        }
 
-    return {"status": "received", "from": sender}
+    result: ContactUpdateResult = await _inbound_email_use_case.execute(
+        sender_email=sender,
+        email_body=body,
+        subject=subject,
+    )
+
+    if result.success:
+        print(f"   ✅ Contact {result.contact_id} processed.")
+        if result.fields_updated:
+            print(f"   📝 Fields updated: {', '.join(result.fields_updated)}")
+        else:
+            print(f"   ℹ️  No changes — contact confirmed info is correct.")
+        if result.parse_result:
+            print(
+                f"   💰 Haiku cost: ${result.parse_result.cost_usd:.6f} "
+                f"({result.parse_result.tokens_input}+{result.parse_result.tokens_output} tokens)"
+            )
+    else:
+        print(f"   ❌ Processing failed: {result.error}")
+
+    return {
+        "status": "processed" if result.success else "error",
+        "from": sender,
+        "contact_id": result.contact_id,
+        "fields_updated": result.fields_updated or [],
+        "error": result.error,
+    }
 
 
 @app.get("/health")
 async def health():
-    return {"status": "ok"}
+    return {"status": "ok", "parser": "claude-3.5-haiku"}
 
 
 def start():

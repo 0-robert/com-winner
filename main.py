@@ -20,7 +20,7 @@ import logging
 from dotenv import load_dotenv
 load_dotenv()
 import threading
-from prospectkeeper.adapters.webhook_adapter import start as start_webhook
+from prospectkeeper.adapters.webhook_adapter import start as start_webhook, configure as configure_webhook
 
 
 
@@ -131,6 +131,14 @@ def launch_dashboard():
 
 def main():
     args = parse_args()
+
+    # Wire the inbound-email use case into the webhook before starting it
+    from prospectkeeper.infrastructure.config import Config
+    from prospectkeeper.infrastructure.container import Container
+
+    config = Config.from_env()
+    container = Container(config)
+    configure_webhook(container.process_inbound_email_use_case)
 
     webhook_thread = threading.Thread(target=start_webhook, daemon=True)
     webhook_thread.start()
