@@ -1,6 +1,6 @@
-import { defineConfig } from 'vite'
-import react from '@vitejs/plugin-react'
-import tailwindcss from '@tailwindcss/vite'
+import { defineConfig } from "vite";
+import react from "@vitejs/plugin-react";
+import tailwindcss from "@tailwindcss/vite";
 
 // https://vitejs.dev/config/
 export default defineConfig({
@@ -8,9 +8,18 @@ export default defineConfig({
   server: {
     port: 5173,
     proxy: {
-      '/api/scrape': {
-        target: 'http://localhost:8001',
+      "/api/scrape": {
+        target: "http://localhost:8001",
         changeOrigin: true,
+        rewrite: (path) => path.replace(/^\/api\/scrape/, "/scrape"),
+      },
+      "/api/email": {
+        target: "http://localhost:8001",
+        changeOrigin: true,
+      },
+    },
+  },
+});
         rewrite: (path) => path.replace(/^\/api\/scrape/, '/scrape'),
       },
       '/api/langfuse-stats': {
