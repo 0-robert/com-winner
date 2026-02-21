@@ -105,11 +105,6 @@ def _get_container() -> Container:
         _container = Container(config)
     return _container
 
-    allow_origins=["http://localhost:5173"],
-    allow_methods=["GET", "POST"],
-    allow_headers=["*"],
-)
-
 
 # ── Request / Response schemas ─────────────────────────────────────────────
 
@@ -220,7 +215,6 @@ class LangfuseStatsResponse(BaseModel):
     langfuse_dashboard_url: str
 
 
-# ── Singleton adapter (one browser session pool) ───────────────────────────
 # ── Singleton adapters ─────────────────────────────────────────────────────
 _adapter = NoDriverAdapter()
 
