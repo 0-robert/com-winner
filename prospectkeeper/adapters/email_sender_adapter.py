@@ -4,6 +4,7 @@ Logs the confirmation email instead of actually sending it.
 Replace with a real SMTP implementation when ready for production.
 """
 
+import asyncio
 import logging
 import os
 import resend
@@ -29,6 +30,9 @@ class EmailSenderAdapter(IEmailSenderGateway):
             resend.api_key = self.api_key
 
     async def send_confirmation(self, email: str, name: str) -> SendEmailResult:
+        # Rate-limit: half-second delay between sends
+        await asyncio.sleep(0.5)
+
         if not email:
             return SendEmailResult(
                 success=False,
