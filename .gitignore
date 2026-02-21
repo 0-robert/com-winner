@@ -1,1 +1,8 @@
 .env
+linkedincookie.json
+debug_linkedin*.html
+debug_linkedin*.png
+debug_linkedin*.txt
+__pycache__/
+*.pyc
+*.pyo
