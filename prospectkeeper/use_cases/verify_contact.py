@@ -95,8 +95,7 @@ class VerifyContactUseCase:
                 f"Sending confirmation email."
             )
             send_result = await self.email_sender.send_confirmation(
-                email=contact.email,
-                name=contact.name,
+                contact=contact,
             )
 
             if send_result.success:
