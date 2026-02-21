@@ -33,7 +33,6 @@ logger = logging.getLogger(__name__)
 @dataclass
 class VerifyContactRequest:
     contact: Contact
-    tier: str = "free"
     tier: str = "free"  # "free" or "paid"
 
 
