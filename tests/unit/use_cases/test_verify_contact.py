@@ -166,7 +166,7 @@ class TestFreeTierConfirmation:
         contact = make_contact(name="Alice", email="alice@org.com")
         await use_case.execute(VerifyContactRequest(contact=contact, tier="free"))
         mock_email_sender.send_confirmation.assert_called_once_with(
-            email="alice@org.com", name="Alice"
+            contact=contact,
         )
 
     async def test_confirmation_notes_contain_email(
