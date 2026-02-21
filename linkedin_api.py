@@ -152,6 +152,10 @@ class ScrapeResponse(BaseModel):
         None,
         description="True if the contact appears to still work at `organization`. Null when `organization` was not supplied.",
     )
+    employment_confidence: float = Field(
+        0.0,
+        description="0–1 score reflecting how conclusively the scraper determined employment status. 0.92=conclusive, 0.40=profile found but unclear, 0.15=scrape failed.",
+    )
     current_title: Optional[str] = Field(None, description="Most recent job title.")
     current_organization: Optional[str] = Field(None, description="Populated with `organization` when `still_at_organization=True`.")
 
@@ -339,11 +343,19 @@ async def scrape_profile(
         [EducationEntry(**e) for e in result.education] if result.education else None
     )
 
+    if not result.success or result.blocked:
+        employment_confidence = 0.15
+    elif result.still_at_organization is not None:
+        employment_confidence = 0.92
+    else:
+        employment_confidence = 0.40
+
     return ScrapeResponse(
         success=result.success,
         blocked=result.blocked,
         error=result.error,
         still_at_organization=result.still_at_organization,
+        employment_confidence=employment_confidence,
         current_title=result.current_title,
         current_organization=result.current_organization,
         profile_url=result.profile_url,
