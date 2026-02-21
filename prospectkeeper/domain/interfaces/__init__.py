@@ -3,6 +3,7 @@ from .i_scraper_gateway import IScraperGateway
 from .i_linkedin_gateway import ILinkedInGateway
 from .i_ai_gateway import IAIGateway
 from .i_email_verification_gateway import IEmailVerificationGateway
+from .i_email_sender_gateway import IEmailSenderGateway
 
 __all__ = [
     "IDataRepository",
@@ -10,4 +11,6 @@ __all__ = [
     "ILinkedInGateway",
     "IAIGateway",
     "IEmailVerificationGateway",
+    "IEmailSenderGateway",
 ]
+

@@ -29,7 +29,6 @@ class AgentEconomics:
     # API costs incurred
     zerobounce_cost_usd: float = 0.0
     claude_cost_usd: float = 0.0
-    scraper_cost_usd: float = 0.0  # Always 0 — free tier
 
     # Token usage (for Helicone observability)
     tokens_used: int = 0
@@ -39,13 +38,13 @@ class AgentEconomics:
     replacement_found: bool = False
     flagged_for_review: bool = False
 
-    # Tier used (1=scrape, 2=linkedin, 3=claude)
+    # Tier used (1=free/email, 2=paid/ai)
     highest_tier_used: int = 0
 
     @property
     def total_api_cost_usd(self) -> float:
         return round(
-            self.zerobounce_cost_usd + self.claude_cost_usd + self.scraper_cost_usd, 6
+            self.zerobounce_cost_usd + self.claude_cost_usd, 6
         )
 
     @property

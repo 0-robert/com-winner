@@ -21,7 +21,8 @@ FAKE_CONFIG = Config(
     supabase_url="https://fake.supabase.co",
     supabase_service_key="fake-service-key",
     anthropic_api_key="sk-ant-fake",
-    helicone_api_key="sk-helicone-fake",
+    langfuse_public_key="pk-langfuse-fake",
+    langfuse_secret_key="sk-langfuse-fake",
     zerobounce_api_key="zb-fake",
     batch_limit=50,
     batch_concurrency=5,
@@ -59,9 +60,9 @@ class TestContainerWiring:
         container = make_container()
         assert container.email_verifier is not None
 
-    def test_container_has_linkedin(self):
+    def test_container_has_email_sender(self):
         container = make_container()
-        assert container.linkedin is not None
+        assert container.email_sender is not None
 
     def test_container_has_ai(self):
         container = make_container()
