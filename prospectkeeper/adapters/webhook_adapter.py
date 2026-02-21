@@ -35,6 +35,30 @@ def configure(use_case: ProcessInboundEmailUseCase) -> None:
     _inbound_email_use_case = use_case
 
 
+def _auto_configure() -> None:
+    """Auto-wire the use case from env vars (for standalone uvicorn deploys like Railway)."""
+    global _inbound_email_use_case
+    if _inbound_email_use_case is not None:
+        return
+    try:
+        from dotenv import load_dotenv
+        load_dotenv()
+        from ..infrastructure.config import Config
+        from ..infrastructure.container import Container
+
+        config = Config.from_env()
+        container = Container(config)
+        _inbound_email_use_case = container.process_inbound_email_use_case
+        logger.info("[Webhook] Auto-configured ProcessInboundEmailUseCase from env.")
+    except Exception as e:
+        logger.error(f"[Webhook] Auto-configure failed: {e}")
+
+
+@app.on_event("startup")
+async def on_startup():
+    _auto_configure()
+
+
 app.add_middleware(
     CORSMiddleware,
     allow_origins=["*"],
