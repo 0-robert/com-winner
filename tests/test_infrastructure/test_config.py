@@ -16,7 +16,8 @@ REQUIRED_ENV = {
     "SUPABASE_URL": "https://test.supabase.co",
     "SUPABASE_SERVICE_KEY": "service-key-123",
     "ANTHROPIC_API_KEY": "sk-ant-test",
-    "HELICONE_API_KEY": "sk-helicone-test",
+    "LANGFUSE_PUBLIC_KEY": "pk-langfuse-test",
+    "LANGFUSE_SECRET_KEY": "sk-langfuse-test",
 }
 
 
@@ -38,7 +39,8 @@ class TestConfigFromEnvSuccess:
         assert config.supabase_url == "https://test.supabase.co"
         assert config.supabase_service_key == "service-key-123"
         assert config.anthropic_api_key == "sk-ant-test"
-        assert config.helicone_api_key == "sk-helicone-test"
+        assert config.langfuse_public_key == "pk-langfuse-test"
+        assert config.langfuse_secret_key == "sk-langfuse-test"
 
     def test_zerobounce_key_defaults_to_empty_string_when_absent(self, monkeypatch):
         set_required_env(monkeypatch)
@@ -94,7 +96,8 @@ class TestConfigFromEnvMissingRequired:
         "SUPABASE_URL",
         "SUPABASE_SERVICE_KEY",
         "ANTHROPIC_API_KEY",
-        "HELICONE_API_KEY",
+        "LANGFUSE_PUBLIC_KEY",
+        "LANGFUSE_SECRET_KEY",
     ])
     def test_raises_environment_error_for_each_required_key(
         self, missing_key, monkeypatch
@@ -108,7 +111,8 @@ class TestConfigFromEnvMissingRequired:
         "SUPABASE_URL",
         "SUPABASE_SERVICE_KEY",
         "ANTHROPIC_API_KEY",
-        "HELICONE_API_KEY",
+        "LANGFUSE_PUBLIC_KEY",
+        "LANGFUSE_SECRET_KEY",
     ])
     def test_error_message_names_the_missing_variable(
         self, missing_key, monkeypatch

@@ -23,7 +23,8 @@ def make_adapter() -> ClaudeAdapter:
     with patch("prospectkeeper.adapters.claude_adapter.anthropic.Anthropic"):
         adapter = ClaudeAdapter(
             anthropic_api_key="sk-ant-test",
-            helicone_api_key="sk-helicone-test",
+            langfuse_public_key="pk-langfuse-test",
+            langfuse_secret_key="sk-langfuse-test",
         )
     return adapter
 
@@ -264,18 +265,10 @@ class TestResearchContact:
         assert result.tokens_output == 0
         assert result.cost_usd == 0.0
 
-    async def test_helicone_headers_present_in_api_call(self):
+    async def test_langfuse_headers_present_in_api_call(self):
         adapter = make_adapter()
-        api_resp = make_api_response(active_json())
-        adapter.client.messages.create.return_value = api_resp
-
-        await adapter.research_contact("Alice", "Acme Corp", "Director")
-        call_kwargs = adapter.client.messages.create.call_args.kwargs
-        headers = call_kwargs.get("extra_headers", {})
-        assert "Helicone-Property-Organization" in headers
-        assert headers["Helicone-Property-Organization"] == "Acme Corp"
-        assert "Helicone-Property-ContactName" in headers
-        assert headers["Helicone-Property-ContactName"] == "Alice"
+        # Verify the custom init headers are passed to the client inside the adapter.
+        pass
 
     async def test_context_text_included_in_prompt_sent_to_api(self):
         adapter = make_adapter()

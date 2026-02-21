@@ -17,6 +17,21 @@ from ..domain.interfaces.i_data_repository import IDataRepository
 logger = logging.getLogger(__name__)
 
 
+def _parse_iso(date_str: Optional[str]) -> datetime:
+    if not date_str:
+        return datetime.utcnow()
+    # Python 3.9 fromisoformat doesn't handle 'Z' well
+    if date_str.endswith("Z"):
+        date_str = date_str[:-1]
+    # It also struggles with timezone info like +00:00 sometimes
+    if "+" in date_str:
+        date_str = date_str.split("+")[0]
+    try:
+        return datetime.fromisoformat(date_str)
+    except ValueError:
+        return datetime.utcnow()
+
+
 def _row_to_contact(row: dict) -> Contact:
     return Contact(
         id=row["id"],
@@ -30,12 +45,8 @@ def _row_to_contact(row: dict) -> Contact:
         district_website=row.get("district_website"),
         linkedin_url=row.get("linkedin_url"),
         email_hash=row.get("email_hash"),
-        created_at=datetime.fromisoformat(row["created_at"])
-        if row.get("created_at")
-        else datetime.utcnow(),
-        updated_at=datetime.fromisoformat(row["updated_at"])
-        if row.get("updated_at")
-        else datetime.utcnow(),
+        created_at=_parse_iso(row.get("created_at")),
+        updated_at=_parse_iso(row.get("updated_at")),
     )
 
 

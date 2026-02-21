@@ -23,6 +23,7 @@ logger = logging.getLogger(__name__)
 
 @dataclass
 class ProcessBatchRequest:
+    tier: str = "free"
     limit: int = 50
     batch_id: str = field(default_factory=lambda: str(uuid.uuid4()))
     concurrency: int = 5  # Max parallel verifications
@@ -74,7 +75,7 @@ class ProcessBatchUseCase:
             async with semaphore:
                 try:
                     result = await self.verify.execute(
-                        VerifyContactRequest(contact=contact)
+                        VerifyContactRequest(contact=contact, tier=request.tier)
                     )
                     results.append(result)
                     await self._apply_result(contact, result)

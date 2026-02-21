@@ -21,10 +21,9 @@ Instead of a simple "Job Complete" log, the agent tracks its own API expenditure
 > *"Batch Complete: 50 Contacts Verified. 12 Replacements Found. Total API Cost: $0.42. SDR Time Saved: 4.5 hours. Estimated Value Generated: $135. Net ROI for this run: +32,000%."*
 
 ### 3.2 Cost-Aware Agentic Routing
-The agent utilizes an "Economic Brain" to minimize its operational costs:
-- **Tier 1 (Free/Cheap):** Web scraping (BeautifulSoup) of district sites + Email validation.
-- **Tier 2 (Moderate):** Local LinkedIn scraping using tools like **CamoUFox**.
-- **Tier 3 (Expensive):** Deep, autonomous web research using Anthropic's Claude.
+The agent utilizes an "Economic Brain" to route contacts between two core tiers:
+- **Free Tier:** Checks if the email is structurally valid and deliverable (ZeroBounce) and sends a confirmation email ("Are you still reachable?"). Costs ~$0.004/call.
+- **Paid Tier:** Deep, autonomous web research using Anthropic's Claude. It first scrapes the employer's district site, then uses Claude 3.5 Sonnet to determine if the contact is active or departed (and searches for a replacement). Costs ~$0.01 – $0.05/call.
 
 ### 3.3 Dynamic Billing Simulation
 Demonstrates outcome-based AI billing infrastructure. The custom frontend SQL dashboard generates a simulated invoice based on successful actions (e.g., $0.10 per verification, $2.50 per newly researched replacement), rather than a flat monthly fee.
@@ -50,16 +49,16 @@ C4Context
     System(prospectKeeper, "ProspectKeeper Agent", "Autonomous system that verifies and maintains contact data quality via automated research and tracks its own ROI.")
     
     System_Ext(db, "Supabase (PostgreSQL)", "Backend as a Service providing the master contact records, fast API access, and realtime updates.")
-    System_Ext(linkedin_scraper, "CamoUFox (Local Scraper)", "Bypasses protections to scrape LinkedIn data for current employment status (Tier 2).")
-    System_Ext(zerobounce, "ZeroBounce", "Provides email verification and deliverability status (Tier 1).")
-    System_Ext(claude, "Anthropic Claude", "Processes unstructured text to identify new contacts (Tier 3).")
-    System_Ext(website, "District Websites", "Public directories containing school district staff assignments (Tier 1).")
+    System_Ext(zerobounce, "ZeroBounce", "Provides email verification and deliverability status.")
+    System_Ext(resend, "Resend", "Sends confirmation emails to Free Tier contacts.")
+    System_Ext(claude, "Anthropic Claude", "Processes unstructured text to identify new contacts in the Paid Tier.")
+    System_Ext(website, "District Websites", "Public directories containing school district staff assignments.")
     System_Ext(observability, "Helicone", "Tracks LLM latency, token usage, and unit economics.")
 
     Rel(admin, db, "Views and manages contacts in", "Custom Frontend GUI")
     Rel(prospectKeeper, db, "Reads raw lists & applies updates/flags to", "PostgREST API")
-    Rel(prospectKeeper, linkedin_scraper, "Orchestrates scraping of LinkedIn profiles via", "Local Execution")
     Rel(prospectKeeper, zerobounce, "Validates emails against", "REST API")
+    Rel(prospectKeeper, resend, "Sends confirmation emails via", "REST API")
     Rel(prospectKeeper, claude, "Sends raw text for structured extraction to", "SDK")
     Rel(prospectKeeper, website, "Scrapes staff pages from", "HTTPS")
     Rel(prospectKeeper, observability, "Sends traces and LLM metrics to", "SDK/Headers")
@@ -79,17 +78,17 @@ flowchart TD
     subgraph Infrastructure ["Infrastructure Layer (External Tools & UI)"]
         DB[("Supabase\n(PostgreSQL + Storage)")]
         WEB["District Websites"]
-        LI["CamoUFox / Local Chrome"]
         CL["Claude API"]
         OBS["Helicone"]
+        RSND["Resend API"]
         DASH["Custom Frontend Dashboard"]
     end
 
     subgraph Adapters ["Interface Adapters Layer"]
         SFA["Supabase Adapter"] -.->|"Implements"| IDB
         BSA["BS4 Scraper Adapter"] -.->|"Implements"| ISC
-        LIA["CamoUFox Adapter"] -.->|"Implements"| ILI
         CLA["Claude Adapter"] -.->|"Implements"| IAI
+        RSA["Email Sender Adapter"] -.->|"Implements"| IES
         CLA -.->|"Logs Traces"| OBS
     end
 
@@ -102,10 +101,10 @@ flowchart TD
 
     subgraph Domain ["Domain Layer (Core Logic)"]
         IDB[["<Interface> IDataRepository"]]
-        ILI[["<Interface> ILinkedInGateway"]]
         IAI[["<Interface> IAIGateway"]]
         ISC[["<Interface> IScraperGateway"]]
         IEV[["<Interface> IEmailVerificationGateway"]]
+        IES[["<Interface> IEmailSenderGateway"]]
         
         Contact(["Entity: Contact"])
         Result(["Entity: VerificationResult"])
@@ -119,7 +118,7 @@ flowchart TD
     UC3 --> UC1
     UC1 --> ISC
     UC1 --> IEV
-    UC1 --> ILI
+    UC1 --> IES
     UC1 --> IAI
     UC3 --> UC2
     UC2 --> Econ
@@ -191,33 +190,43 @@ sequenceDiagram
     participant Batch as ProcessBatchUseCase
     participant Verify as VerifyContactUseCase
     participant DB as IDataRepository (Supabase)
-    participant Tier1 as ScraperGateway (Free)
-    participant Tier2 as CamoUFox (LinkedIn)
-    participant Tier3 as IAIGateway (Expensive)
+    participant Email as IEmailVerificationGateway
+    participant Sender as IEmailSenderGateway
+    participant Scraper as IScraperGateway
+    participant AI as IAIGateway
     participant ROI as CalculateROIUseCase
     
     Batch->>Verify: verify(Contact)
     activate Verify
     
-    %% Cost-Aware Routing: Tier 1
-    Verify->>Tier1: scrape_district_site(Contact.org)
-    Tier1-->>Verify: Result (Failed/Timer expired) + $0.00 cost
-    
-    %% Cost-Aware Routing: Tier 2
-    Verify->>Tier2: scrape_linkedin_status(CamoUFox)
-    Tier2-->>Verify: Result (Failed/Scraping blocked) + $0.00 cost
+    Verify->>Email: verify_email(Contact.email)
+    Email-->>Verify: EmailVerificationResult + $0.004 cost
+
+    alt Tier = 'free'
+        Verify->>Sender: send_confirmation(Contact.email)
+        Sender-->>Verify: SendEmailResult
+        Verify->>Contact: status = PENDING_CONFIRMATION
         
-    %% Cost-Aware Routing: Tier 3
-    Verify->>Tier3: extract_via_claude(Contact.org)
-    Note over Tier3: Telemetry tracked automatically in Helicone
-    Tier3-->>Verify: Result (Still Unknown/Unable to determine) + $0.01 Token Cost
-    
-    %% Flag for Human Review
-    Verify->>Contact: flag_for_review("Exhausted all tiers, still unknown")
+    else Tier = 'paid'
+        Verify->>Scraper: find_contact_on_district_site(Contact.org)
+        Scraper-->>Verify: ScraperResult + ContextText
+        
+        alt Name Found on Site
+            Verify->>Contact: status = ACTIVE
+        else Escalating to AI
+            Verify->>AI: research_contact(ContextText)
+            Note over AI: Telemetry tracked automatically in Helicone
+            AI-->>Verify: Result (Active/Inactive) + Token Cost
+            
+            alt Still Unknown
+                 Verify->>Contact: flag_for_review("Unable to determine status")
+            end
+        end
+    end
     
     Verify->>Verify: compile AgentEconomics (labor saved vs api cost)
     Verify-->>Batch: VerificationResult + AgentEconomics
-    Batch->>DB: update_contact(Contact, needs_human_review=True)
+    Batch->>DB: update_contact(Contact, needs_human_review)
     deactivate Verify
     
     %% Generate the Value-Proof Receipt
@@ -235,13 +244,10 @@ Rather than abstracting through a bulky SaaS CRM, the application will use **Sup
 ### 5.2 Scraping vs. Timing vs. Confidence
 Because accurate confidence scoring requires stable baseline data, the V1 iteration of this logic will enforce strict timeout rules. If scraping or Claude takes too long or returns ambiguous arrays of text instead of an explicit "Match/No Match", the system abandons the attempt and proceeds to the next tier or immediately sets `needs_human_review`. 
 
-### 5.3 LinkedIn Scraping via CamoUFox
-To bypass strict API limitations, Tier 2 will utilize a local headless scraper utilizing a tool like **CamoUFox**. The `CamoUFoxAdapter` integrates cleanly into the Domain via `ILinkedInGateway` and abstracts away the browser orchestration.
-
-### 5.4 Data Privacy (Opt-Out Mechanism)
+### 5.3 Data Privacy (Opt-Out Mechanism)
 A basic `opt_out()` method is added to the `Contact` entity to immediately sever tracking and scrub contact details (except for an anonymized hash of the email) to simulate GDPR/CCPA compliance.
 
-### 5.5 Observability via Helicone
+### 5.4 Observability via Helicone
 All requests dispatched to the Anthropic API via `ClaudeAdapter` will use Helicone's proxy structure. The API key and headers will trace `Cost per Contact` and `Cost per Replacement`.
 
 ## 6. Implementation Phases (48 Hours)
@@ -252,7 +258,7 @@ All requests dispatched to the Anthropic API via `ClaudeAdapter` will use Helico
 - **Phase 2: Database & Adapters (Hours 5-16)**
   - Set up a new Supabase project and implement `SupabaseDBAdapter` (handling PostgREST calls for data).
   - Implement Tier 1 `BS4ScraperAdapter` and `ZeroBounceAdapter`.
-  - Build `CamoUFoxAdapter` for headless LinkedIn verification.
+  - Build `EmailSenderAdapter` to send confirmations via Resend.
   - Implement `ClaudeAdapter` directed through Helicone proxy.
 - **Phase 3: Core Use Cases (The Economic Brain) (Hours 17-26)**
   - Orchestrate the `VerifyContactUseCase` tiered logic.
