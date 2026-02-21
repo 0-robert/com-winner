@@ -6,3 +6,4 @@ debug_linkedin*.txt
 __pycache__/
 *.pyc
 *.pyo
+linkedinkeys.json
