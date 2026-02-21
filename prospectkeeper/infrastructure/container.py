@@ -8,7 +8,6 @@ The domain and use case layers remain framework-agnostic.
 from .config import Config
 from ..adapters.supabase_adapter import SupabaseAdapter
 from ..adapters.bs4_scraper_adapter import BS4ScraperAdapter
-from ..adapters.zerobounce_adapter import ZeroBounceAdapter
 from ..adapters.claude_adapter import ClaudeAdapter
 from ..adapters.email_sender_adapter import EmailSenderAdapter
 from ..use_cases.verify_contact import VerifyContactUseCase
@@ -32,7 +31,6 @@ class Container:
             key=config.supabase_service_key,
         )
         self.scraper = BS4ScraperAdapter()
-        self.email_verifier = ZeroBounceAdapter(api_key=config.zerobounce_api_key)
         self.email_sender = EmailSenderAdapter()
         self.ai = ClaudeAdapter(
             anthropic_api_key=config.anthropic_api_key,
@@ -42,7 +40,6 @@ class Container:
         self.verify_use_case = VerifyContactUseCase(
             scraper=self.scraper,
             ai=self.ai,
-            email_verifier=self.email_verifier,
             email_sender=self.email_sender,
         )
         self.roi_use_case = CalculateROIUseCase()
