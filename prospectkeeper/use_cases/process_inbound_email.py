@@ -6,6 +6,7 @@ and updates contact records with any corrected information.
 
 import json
 import logging
+import re
 from dataclasses import dataclass
 from typing import Optional, List
 
@@ -96,7 +97,10 @@ class ProcessInboundEmailUseCase:
         4. Persist any changes
         """
         # ── Step 1: Find the contact ──────────────────────────────────────
-        contact = await self.repository.get_contact_by_email(sender_email.strip().lower())
+        # Extract email from angle brackets if present, e.g. "John Doe <john@example.com>"
+        match = re.search(r"<([^>]+)>", sender_email)
+        clean_email = (match.group(1) if match else sender_email).strip().lower()
+        contact = await self.repository.get_contact_by_email(clean_email)
         if not contact:
             logger.warning(
                 f"[InboundEmail] No contact found for sender {sender_email}"
