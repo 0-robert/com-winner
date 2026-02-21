@@ -1,8 +1,8 @@
 """
-LinkedIn Scraper — FastAPI Service
-===================================
-Wraps NoDriverAdapter as an HTTP API so any service can request a full
-LinkedIn profile scrape without importing the adapter directly.
+ProspectKeeper — Unified FastAPI Service
+=========================================
+Serves both the LinkedIn scraper and outbound email endpoints.
+The React frontend proxies all /api/* requests here.
 
 Start:
     uvicorn linkedin_api:app --reload --port 8001
@@ -17,6 +17,7 @@ Authentication:
     "dev-key" when unset so local testing works without configuration).
 """
 
+import asyncio
 import base64
 import hashlib
 import json
@@ -39,6 +40,8 @@ load_dotenv()
 sys.path.insert(0, os.path.dirname(__file__))
 
 from prospectkeeper.adapters.nodriver_adapter import NoDriverAdapter
+from prospectkeeper.infrastructure.config import Config
+from prospectkeeper.infrastructure.container import Container
 from prospectkeeper.adapters.supabase_adapter import SupabaseAdapter
 
 logging.basicConfig(
@@ -74,20 +77,34 @@ def _require_api_key(x_api_key: str = Header(..., description="Service API key")
 app = FastAPI(
     title="ProspectKeeper API",
     description=(
-        "Headless LinkedIn profile scraper backed by **NoDriverAdapter**.\n\n"
-        "Returns structured profile data: name, headline, location, full experience "
-        "history, education, and skills — including data from the `/details/` sub-pages "
-        "that are truncated on the main profile view.\n\n"
-        "Requires a valid LinkedIn session cookie (`li_at`) either in "
-        "`linkedincookie.json` (project root) or the `LINKEDIN_COOKIES_FILE` env var."
+        "Unified backend for ProspectKeeper — LinkedIn scraping, email outreach, "
+        "and contact management.\n\n"
+        "The React frontend proxies `/api/*` to this service."
     ),
-    version="1.0.0",
+    version="2.0.0",
     contact={"name": "ProspectKeeper"},
     license_info={"name": "Private"},
 )
 
 app.add_middleware(
     CORSMiddleware,
+    allow_origins=["http://localhost:5173", "http://localhost:3000"],
+    allow_methods=["*"],
+    allow_headers=["*"],
+)
+
+# ── Dependency-Injected Container (lazy init) ─────────────────────────────
+_container: Optional[Container] = None
+
+
+def _get_container() -> Container:
+    """Lazily initialise the DI container on first use."""
+    global _container
+    if _container is None:
+        config = Config.from_env()
+        _container = Container(config)
+    return _container
+
     allow_origins=["http://localhost:5173"],
     allow_methods=["GET", "POST"],
     allow_headers=["*"],
@@ -473,4 +490,173 @@ async def scrape_profile(
         education=education,
         skills=result.skills,
         scrape_duration_seconds=elapsed,
+    )
+
+
+# ══════════════════════════════════════════════════════════════════════════
+#  EMAIL ENDPOINTS
+# ══════════════════════════════════════════════════════════════════════════
+
+
+class SendOneEmailRequest(BaseModel):
+    """Send an info-review email to a single contact by ID."""
+    contact_id: str = Field(..., description="UUID of the contact to email.")
+
+
+class SendAllEmailsRequest(BaseModel):
+    """Send info-review emails to all eligible contacts."""
+    status_filter: Optional[str] = Field(
+        None,
+        description=(
+            "Only email contacts with this status. "
+            "Omit or set null to email every non-opted-out contact."
+        ),
+        examples=["unknown", "active"],
+    )
+    limit: int = Field(
+        50,
+        ge=1,
+        le=500,
+        description="Max number of contacts to email in this batch.",
+    )
+    concurrency: int = Field(
+        5,
+        ge=1,
+        le=20,
+        description="How many emails to send in parallel.",
+    )
+
+
+class EmailResultItem(BaseModel):
+    contact_id: str
+    email: str
+    success: bool
+    error: Optional[str] = None
+
+
+class SendOneEmailResponse(BaseModel):
+    success: bool
+    contact_id: str
+    email: str
+    error: Optional[str] = None
+
+
+class SendAllEmailsResponse(BaseModel):
+    total_sent: int
+    total_failed: int
+    results: List[EmailResultItem]
+
+
+@app.post(
+    "/api/email/send-one",
+    response_model=SendOneEmailResponse,
+    summary="Send info-review email to ONE contact",
+    description=(
+        "Looks up the contact by ID, sends them a confirmation email via Resend, "
+        "and returns the result. The email asks the contact to verify the information "
+        "we have on file for them.\n\n"
+        "Uses the same `EmailSenderAdapter` (Resend) as the batch pipeline."
+    ),
+    tags=["Email"],
+)
+async def send_one_email(
+    request: SendOneEmailRequest,
+    x_api_key: str = Header(..., description="Service API key"),
+) -> SendOneEmailResponse:
+    _require_api_key(x_api_key)
+    container = _get_container()
+
+    contact = await container.repository.get_contact_by_id(request.contact_id)
+    if not contact:
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND,
+            detail=f"Contact {request.contact_id} not found.",
+        )
+    if contact.is_opted_out():
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail="Contact has opted out — cannot send email.",
+        )
+
+    result = await container.email_sender.send_confirmation(contact)
+
+    logger.info(
+        f"[Email] send-one to {contact.email}: success={result.success}"
+    )
+    return SendOneEmailResponse(
+        success=result.success,
+        contact_id=contact.id,
+        email=result.email,
+        error=result.error,
+    )
+
+
+@app.post(
+    "/api/email/send-all",
+    response_model=SendAllEmailsResponse,
+    summary="Send info-review emails to ALL eligible contacts",
+    description=(
+        "Fetches contacts from the database (optionally filtered by status), "
+        "and sends each one a confirmation email with bounded concurrency.\n\n"
+        "Contacts who have opted out are automatically excluded.\n\n"
+        "Returns a per-contact success/failure breakdown."
+    ),
+    tags=["Email"],
+)
+async def send_all_emails(
+    request: SendAllEmailsRequest,
+    x_api_key: str = Header(..., description="Service API key"),
+) -> SendAllEmailsResponse:
+    _require_api_key(x_api_key)
+    container = _get_container()
+
+    all_contacts = await container.repository.get_all_contacts()
+
+    # Apply optional status filter
+    if request.status_filter:
+        all_contacts = [
+            c for c in all_contacts
+            if c.status.value == request.status_filter
+        ]
+
+    # Respect limit
+    batch = all_contacts[: request.limit]
+
+    logger.info(
+        f"[Email] send-all: {len(batch)} contacts "
+        f"(filter={request.status_filter}, limit={request.limit})"
+    )
+
+    results: List[EmailResultItem] = []
+    semaphore = asyncio.Semaphore(request.concurrency)
+
+    async def _send(contact):
+        async with semaphore:
+            try:
+                res = await container.email_sender.send_confirmation(contact)
+                results.append(EmailResultItem(
+                    contact_id=contact.id,
+                    email=res.email,
+                    success=res.success,
+                    error=res.error,
+                ))
+            except Exception as e:
+                results.append(EmailResultItem(
+                    contact_id=contact.id,
+                    email=contact.email or "",
+                    success=False,
+                    error=str(e),
+                ))
+
+    await asyncio.gather(*[_send(c) for c in batch])
+
+    total_ok = sum(1 for r in results if r.success)
+    total_fail = len(results) - total_ok
+
+    logger.info(f"[Email] send-all done: {total_ok} ok, {total_fail} failed")
+
+    return SendAllEmailsResponse(
+        total_sent=total_ok,
+        total_failed=total_fail,
+        results=results,
     )
