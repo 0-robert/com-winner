@@ -27,7 +27,6 @@ class AgentEconomics:
     contact_id: str
 
     # API costs incurred
-    zerobounce_cost_usd: float = 0.0
     claude_cost_usd: float = 0.0
 
     # Token usage (for Helicone observability)
@@ -43,9 +42,7 @@ class AgentEconomics:
 
     @property
     def total_api_cost_usd(self) -> float:
-        return round(
-            self.zerobounce_cost_usd + self.claude_cost_usd, 6
-        )
+        return round(self.claude_cost_usd, 6)
 
     @property
     def labor_hours_saved(self) -> float:

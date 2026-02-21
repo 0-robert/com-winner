@@ -178,12 +178,11 @@ elif page == "Run Agent":
     st.title("🤖 Run Batch Verification")
 
     st.markdown("""
-    The agent processes contacts through three cost-aware tiers:
+    The agent processes contacts through two cost-aware tiers:
     | Tier | Method | Cost |
     |------|--------|------|
-    | 1 | Website scraping + email validation (ZeroBounce) | ~$0.004/contact |
-    | 2 | LinkedIn verification via CamoUFox | $0.00 |
-    | 3 | AI deep research via Claude (Helicone-traced) | ~$0.01-0.05/contact |
+    | 1 | Website scraping | $0.00 |
+    | 2 | AI deep research via Claude (Langfuse-traced) | ~$0.01-0.05/contact |
     """)
 
     st.divider()
