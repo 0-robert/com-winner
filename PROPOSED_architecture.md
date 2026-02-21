@@ -2,14 +2,13 @@
 
 ## 1. Executive Summary
 
-**ProspectKeeper** is an autonomous B2B contact list maintenance agent addressing the costly problem of B2B contact list decay (20-30% yearly churn). Focusing specifically on Special Education Directors, ProspectKeeper automatically verifies existing contacts, flags uncertain ones for human review, and autonomously researches replacements for departed contacts.
+**ProspectKeeper** is an autonomous B2B contact list maintenance agent addressing the costly problem of B2B contact list decay (20-30% yearly churn). ProspectKeeper automatically verifies existing contacts, flags uncertain ones for human review, and autonomously researches replacements for departed contacts.
 
 To win the **Paid.ai** track at the HackEurope hackathon, ProspectKeeper completely abandons traditional SaaS flat-fee pricing logic. Instead, it implements a highly transparent **Outcome-Based Pricing Model**, dynamically tracking its own operational API costs against the human labor hours it saves. It generates a live **Value-Proof Receipt (ROI Telemetry)** for every job run, acting as an economically aware digital employee.
 
 ## 2. Problem Statement & Business Case
 
 - **The Problem:** B2B contact data decays rapidly as people change jobs, retire, or districts reorganize. Wasted outreach and missed opportunities cost companies $10k-$50k/year in lost SDR efficiency.
-- **The Target:** Special Education Directors in school districts.
 - **The Current Solution:** Manual research (hours per week), calling districts, or paying $10k+/year for services like ZoomInfo (which still suffer from decay).
 - **The ProspectKeeper Solution:** An autonomous agent that verifies current positions, validates emails, and uses AI to research replacements for departed contacts, all while saving SDR time and tracking exact economic ROI.
 
@@ -50,15 +49,15 @@ C4Context
 
     System(prospectKeeper, "ProspectKeeper Agent", "Autonomous system that verifies and maintains contact data quality via automated research and tracks its own ROI.")
     
-    System_Ext(db, "SQL Database + Custom Frontend", "Custom CRM interface that stores master contact records and flags items for review.")
+    System_Ext(db, "Supabase (PostgreSQL)", "Backend as a Service providing the master contact records, fast API access, and realtime updates.")
     System_Ext(linkedin_scraper, "CamoUFox (Local Scraper)", "Bypasses protections to scrape LinkedIn data for current employment status (Tier 2).")
     System_Ext(zerobounce, "ZeroBounce", "Provides email verification and deliverability status (Tier 1).")
     System_Ext(claude, "Anthropic Claude", "Processes unstructured text to identify new contacts (Tier 3).")
     System_Ext(website, "District Websites", "Public directories containing school district staff assignments (Tier 1).")
     System_Ext(observability, "Helicone", "Tracks LLM latency, token usage, and unit economics.")
 
-    Rel(admin, db, "Views and manages contacts in", "Web Browser")
-    Rel(prospectKeeper, db, "Reads raw lists & applies updates/flags to", "SQL queries")
+    Rel(admin, db, "Views and manages contacts in", "Custom Frontend GUI")
+    Rel(prospectKeeper, db, "Reads raw lists & applies updates/flags to", "PostgREST API")
     Rel(prospectKeeper, linkedin_scraper, "Orchestrates scraping of LinkedIn profiles via", "Local Execution")
     Rel(prospectKeeper, zerobounce, "Validates emails against", "REST API")
     Rel(prospectKeeper, claude, "Sends raw text for structured extraction to", "SDK")
@@ -69,7 +68,7 @@ C4Context
 ### 4.2 Handling Human Review & Uncertainty (Timer vs Confidence)
 * **Initial Release:** The validation logic operates on a simple timer (e.g., waiting X seconds for a scraper or API to return).
 * **Future Migration:** It will scale towards statistical confidence scores as data stability is established.
-* **Flagging:** If the agent exhausts all three tiers of routing, or if the scraped data seems unstable, it immediately flags the record in the SQL database for human review to avoid inaccurate data contamination.
+* **Flagging:** If the agent exhausts all three tiers of routing, or if the scraped data seems unstable, it immediately flags the record in Supabase for human review to avoid inaccurate data contamination.
 
 ### 4.3 Hexagonal Architecture (Ports and Adapters)
 Illustrates how the core Domain remains completely decoupled from external frameworks.
@@ -78,7 +77,7 @@ Illustrates how the core Domain remains completely decoupled from external frame
 %%{init: {'theme': 'base', 'themeVariables': { 'primaryColor': '#E3F2FD', 'edgeLabelBackground':'#ffffff'}}}%%
 flowchart TD
     subgraph Infrastructure ["Infrastructure Layer (External Tools & UI)"]
-        DB[("SQL Database")]
+        DB[("Supabase\n(PostgreSQL + Storage)")]
         WEB["District Websites"]
         LI["CamoUFox / Local Chrome"]
         CL["Claude API"]
@@ -87,7 +86,7 @@ flowchart TD
     end
 
     subgraph Adapters ["Interface Adapters Layer"]
-        SFA["SQL DB Adapter"] -.->|"Implements"| IDB
+        SFA["Supabase Adapter"] -.->|"Implements"| IDB
         BSA["BS4 Scraper Adapter"] -.->|"Implements"| ISC
         LIA["CamoUFox Adapter"] -.->|"Implements"| ILI
         CLA["Claude Adapter"] -.->|"Implements"| IAI
@@ -191,7 +190,7 @@ Shows the interactions as the Use Case executes its rules against the Domain Int
 sequenceDiagram
     participant Batch as ProcessBatchUseCase
     participant Verify as VerifyContactUseCase
-    participant DB as IDataRepository (SQL)
+    participant DB as IDataRepository (Supabase)
     participant Tier1 as ScraperGateway (Free)
     participant Tier2 as CamoUFox (LinkedIn)
     participant Tier3 as IAIGateway (Expensive)
@@ -230,8 +229,8 @@ sequenceDiagram
 
 ## 5. Technical Specifications & Requirements
 
-### 5.1 CRM Integration (SQL + Custom Frontend)
-Rather than abstracting through a bulky SaaS CRM, the application will use a lightweight SQL database (e.g., PostgreSQL or SQLite) accessed via a custom frontend (built in Streamlit, Gradio, or a minimalistic web framework) to quickly display the target audience, the ROI telemetry dashboard, and any flagged items awaiting human review.
+### 5.1 CRM Integration (Supabase + Custom Frontend)
+Rather than abstracting through a bulky SaaS CRM, the application will use **Supabase** acting as the central data store (utilizing its underlying PostgreSQL and fast REST API layer). This acts as the backend for a custom frontend (built in Streamlit, Gradio, Flutter, or Next.js) to quickly display the target audience, the ROI telemetry dashboard, and any flagged items awaiting human review.
 
 ### 5.2 Scraping vs. Timing vs. Confidence
 Because accurate confidence scoring requires stable baseline data, the V1 iteration of this logic will enforce strict timeout rules. If scraping or Claude takes too long or returns ambiguous arrays of text instead of an explicit "Match/No Match", the system abandons the attempt and proceeds to the next tier or immediately sets `needs_human_review`. 
@@ -251,7 +250,7 @@ All requests dispatched to the Anthropic API via `ClaudeAdapter` will use Helico
   - Define `Contact`, `VerificationResult`, `AgentEconomics`, and `ValueProofReceipt`.
   - Stub out all `I*Gateway` interface definitions.
 - **Phase 2: Database & Adapters (Hours 5-16)**
-  - Set up SQLite or PostgreSQL database and implement `SQLDBAdapter`.
+  - Set up a new Supabase project and implement `SupabaseDBAdapter` (handling PostgREST calls for data).
   - Implement Tier 1 `BS4ScraperAdapter` and `ZeroBounceAdapter`.
   - Build `CamoUFoxAdapter` for headless LinkedIn verification.
   - Implement `ClaudeAdapter` directed through Helicone proxy.
