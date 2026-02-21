@@ -96,7 +96,7 @@ class ProcessInboundEmailUseCase:
         4. Persist any changes
         """
         # ── Step 1: Find the contact ──────────────────────────────────────
-        contact = await self.repository.get_contact_by_email(sender_email)
+        contact = await self.repository.get_contact_by_email(sender_email.strip().lower())
         if not contact:
             logger.warning(
                 f"[InboundEmail] No contact found for sender {sender_email}"
