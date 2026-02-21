@@ -12,15 +12,13 @@ All requests routed through Langfuse for:
 import json
 import logging
 from typing import Optional
-import base64
-
 import anthropic
+from langfuse import get_client as get_langfuse_client
 
 from ..domain.interfaces.i_ai_gateway import IAIGateway, AIResearchResult
 
 logger = logging.getLogger(__name__)
 
-LANGFUSE_BASE_URL = "https://us.anthropic.langfuse.com"
 MODEL = "claude-sonnet-4-6"
 
 RESEARCH_SYSTEM_PROMPT = """You are a B2B contact research specialist.
@@ -53,17 +51,9 @@ class ClaudeAdapter(IAIGateway):
     Uses structured output to ensure parseable responses.
     """
 
-    def __init__(self, anthropic_api_key: str, langfuse_public_key: str, langfuse_secret_key: str):
-        # Langfuse proxy: intercepts requests for observability
-        auth_string = f"{langfuse_public_key}:{langfuse_secret_key}"
-        encoded_auth = base64.b64encode(auth_string.encode()).decode()
-
+    def __init__(self, anthropic_api_key: str):
         self.client = anthropic.Anthropic(
             api_key=anthropic_api_key,
-            base_url=LANGFUSE_BASE_URL,
-            default_headers={
-                "Authorization": f"Basic {encoded_auth}",
-            },
         )
 
     async def research_contact(
@@ -76,20 +66,27 @@ class ClaudeAdapter(IAIGateway):
         prompt = self._build_prompt(contact_name, organization, title, context_text)
 
         try:
-            # Tag each request with metadata for Langfuse
-            response = self.client.messages.create(
+            with get_langfuse_client().start_as_current_generation(
+                name="research_contact",
                 model=MODEL,
-                max_tokens=1024,
-                system=RESEARCH_SYSTEM_PROMPT,
-                messages=[{"role": "user", "content": prompt}],
-            )
+                input=prompt,
+                metadata={"contact": contact_name, "organization": organization},
+            ) as generation:
+                response = self.client.messages.create(
+                    model=MODEL,
+                    max_tokens=1024,
+                    system=RESEARCH_SYSTEM_PROMPT,
+                    messages=[{"role": "user", "content": prompt}],
+                )
 
-            # Parse token usage for economics tracking
-            input_tokens = response.usage.input_tokens
-            output_tokens = response.usage.output_tokens
+                input_tokens = response.usage.input_tokens
+                output_tokens = response.usage.output_tokens
+                cost_usd = (input_tokens * 3.0 + output_tokens * 15.0) / 1_000_000
 
-            # Calculate approximate cost (claude-sonnet-4-6 pricing)
-            cost_usd = (input_tokens * 3.0 + output_tokens * 15.0) / 1_000_000
+                generation.update(
+                    output=response.content[0].text,
+                    usage={"input": input_tokens, "output": output_tokens},
+                )
 
             content = response.content[0].text
             return self._parse_response(

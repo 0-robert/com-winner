@@ -35,8 +35,6 @@ class Container:
         self.email_sender = EmailSenderAdapter()
         self.ai = ClaudeAdapter(
             anthropic_api_key=config.anthropic_api_key,
-            langfuse_public_key=config.langfuse_public_key,
-            langfuse_secret_key=config.langfuse_secret_key,
         )
 
         # ── Use Cases (Application layer) ──────────────────────────────────
