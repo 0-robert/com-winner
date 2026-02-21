@@ -17,21 +17,17 @@ export default defineConfig({
         target: "http://localhost:8001",
         changeOrigin: true,
       },
+      "/api/langfuse-stats": {
+        target: "http://localhost:8001",
+        changeOrigin: true,
+        rewrite: (path) =>
+          path.replace(/^\/api\/langfuse-stats/, "/langfuse-stats"),
+      },
+      "/api/contacts": {
+        target: "http://localhost:8002",
+        changeOrigin: true,
+        rewrite: (path) => path.replace(/^\/api\/contacts/, "/contacts"),
+      },
     },
   },
 });
-        rewrite: (path) => path.replace(/^\/api\/scrape/, '/scrape'),
-      },
-      '/api/langfuse-stats': {
-        target: 'http://localhost:8001',
-        changeOrigin: true,
-        rewrite: (path) => path.replace(/^\/api\/langfuse-stats/, '/langfuse-stats'),
-      },
-      '/api/contacts': {
-        target: 'http://localhost:8002',
-        changeOrigin: true,
-        rewrite: (path) => path.replace(/^\/api\/contacts/, '/contacts'),
-      }
-    }
-  }
-})
