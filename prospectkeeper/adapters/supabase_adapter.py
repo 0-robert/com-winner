@@ -147,7 +147,7 @@ class SupabaseAdapter(IDataRepository):
         response = (
             self.client.table("contacts")
             .select("*")
-            .eq("email", email)
+            .ilike("email", email)
             .limit(1)
             .execute()
         )
