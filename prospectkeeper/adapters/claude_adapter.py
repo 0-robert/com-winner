@@ -1,9 +1,9 @@
 """
 ClaudeAdapter - Implements IAIGateway.
-Tier 3: Deep research using Anthropic Claude via Helicone observability proxy.
+Tier 3: Deep research using Anthropic Claude via Langfuse observability proxy.
 Cost: ~$0.01-$0.05 per contact depending on research depth.
 
-All requests routed through Helicone for:
+All requests routed through Langfuse for:
 - Real-time cost-per-contact tracking
 - Token usage dashboards
 - Latency monitoring
@@ -12,6 +12,7 @@ All requests routed through Helicone for:
 import json
 import logging
 from typing import Optional
+import base64
 
 import anthropic
 
@@ -19,7 +20,7 @@ from ..domain.interfaces.i_ai_gateway import IAIGateway, AIResearchResult
 
 logger = logging.getLogger(__name__)
 
-HELICONE_BASE_URL = "https://anthropic.helicone.ai"
+LANGFUSE_BASE_URL = "https://us.anthropic.langfuse.com"
 MODEL = "claude-sonnet-4-6"
 
 RESEARCH_SYSTEM_PROMPT = """You are a B2B contact research specialist.
@@ -48,20 +49,20 @@ Rules:
 class ClaudeAdapter(IAIGateway):
     """
     Tier 3 AI research adapter.
-    Routes all Claude API calls through Helicone proxy for observability.
+    Routes all Claude API calls through Langfuse proxy for observability.
     Uses structured output to ensure parseable responses.
     """
 
-    def __init__(self, anthropic_api_key: str, helicone_api_key: str):
-        self.helicone_api_key = helicone_api_key
-        # Helicone proxy: intercepts requests for observability
+    def __init__(self, anthropic_api_key: str, langfuse_public_key: str, langfuse_secret_key: str):
+        # Langfuse proxy: intercepts requests for observability
+        auth_string = f"{langfuse_public_key}:{langfuse_secret_key}"
+        encoded_auth = base64.b64encode(auth_string.encode()).decode()
+
         self.client = anthropic.Anthropic(
             api_key=anthropic_api_key,
-            base_url=HELICONE_BASE_URL,
+            base_url=LANGFUSE_BASE_URL,
             default_headers={
-                "Helicone-Auth": f"Bearer {helicone_api_key}",
-                "Helicone-Property-App": "ProspectKeeper",
-                "Helicone-Property-Tier": "3",
+                "Authorization": f"Basic {encoded_auth}",
             },
         )
 
@@ -75,16 +76,12 @@ class ClaudeAdapter(IAIGateway):
         prompt = self._build_prompt(contact_name, organization, title, context_text)
 
         try:
-            # Tag each request with contact-level metadata for Helicone dashboards
+            # Tag each request with metadata for Langfuse
             response = self.client.messages.create(
                 model=MODEL,
                 max_tokens=1024,
                 system=RESEARCH_SYSTEM_PROMPT,
                 messages=[{"role": "user", "content": prompt}],
-                extra_headers={
-                    "Helicone-Property-Organization": organization,
-                    "Helicone-Property-ContactName": contact_name,
-                },
             )
 
             # Parse token usage for economics tracking

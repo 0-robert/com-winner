@@ -10,7 +10,7 @@ CREATE TABLE IF NOT EXISTS contacts (
     title               TEXT,
     organization        TEXT NOT NULL,
     status              TEXT NOT NULL DEFAULT 'unknown'
-                            CHECK (status IN ('active', 'inactive', 'unknown', 'opted_out')),
+                            CHECK (status IN ('active', 'inactive', 'unknown', 'pending_confirmation', 'opted_out')),
     needs_human_review  BOOLEAN NOT NULL DEFAULT FALSE,
     review_reason       TEXT,
     district_website    TEXT,

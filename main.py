@@ -40,6 +40,9 @@ def parse_args():
     run_parser.add_argument(
         "--concurrency", type=int, default=5, help="Parallel workers (default: 5)"
     )
+    run_parser.add_argument(
+        "--tier", type=str, choices=["free", "paid"], default="free", help="Verification tier (default: free)"
+    )
 
     # dashboard command
     subparsers.add_parser("dashboard", help="Launch the Streamlit dashboard")
@@ -53,7 +56,7 @@ def parse_args():
     return parser.parse_args()
 
 
-async def run_batch(limit: int, concurrency: int):
+async def run_batch(limit: int, concurrency: int, tier: str):
     from prospectkeeper.infrastructure.config import Config
     from prospectkeeper.infrastructure.container import Container
     from prospectkeeper.use_cases.process_batch import ProcessBatchRequest
@@ -61,9 +64,9 @@ async def run_batch(limit: int, concurrency: int):
     config = Config.from_env()
     container = Container(config)
 
-    logger.info(f"Starting batch run: limit={limit}, concurrency={concurrency}")
+    logger.info(f"Starting batch run: tier={tier}, limit={limit}, concurrency={concurrency}")
     response = await container.process_batch_use_case.execute(
-        ProcessBatchRequest(limit=limit, concurrency=concurrency)
+        ProcessBatchRequest(tier=tier, limit=limit, concurrency=concurrency)
     )
 
     print("\n" + "=" * 70)
@@ -119,7 +122,7 @@ def main():
     args = parse_args()
 
     if args.command == "run":
-        asyncio.run(run_batch(args.limit, args.concurrency))
+        asyncio.run(run_batch(args.limit, args.concurrency, args.tier))
 
     elif args.command == "dashboard":
         launch_dashboard()
