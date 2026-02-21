@@ -17,6 +17,10 @@ import csv
 import sys
 import argparse
 import logging
+import threading
+from prospectkeeper.adapters.webhook_adapter import start as start_webhook
+
+
 
 logging.basicConfig(
     level=logging.INFO,
@@ -120,6 +124,9 @@ def launch_dashboard():
 
 def main():
     args = parse_args()
+
+    webhook_thread = threading.Thread(target=start_webhook, daemon=True)
+    webhook_thread.start()
 
     if args.command == "run":
         asyncio.run(run_batch(args.limit, args.concurrency, args.tier))

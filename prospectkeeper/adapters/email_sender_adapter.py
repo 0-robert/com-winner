@@ -60,6 +60,7 @@ class EmailSenderAdapter(IEmailSenderGateway):
             response = resend.Emails.send({
                 "from": self.from_email,
                 "to": [contact.email],
+                "reply_to": "Rolodex-AI.r0xxak@zapiermail.com",
                 "subject": "Please review the information we have on file for you",
                 "html": html_content,
             })
