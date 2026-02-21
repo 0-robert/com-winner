@@ -17,6 +17,8 @@ Authentication:
     "dev-key" when unset so local testing works without configuration).
 """
 
+import hashlib
+import json
 import logging
 import os
 import sys
@@ -34,6 +36,7 @@ load_dotenv()
 sys.path.insert(0, os.path.dirname(__file__))
 
 from prospectkeeper.adapters.nodriver_adapter import NoDriverAdapter
+from prospectkeeper.adapters.supabase_adapter import SupabaseAdapter
 
 logging.basicConfig(
     level=logging.INFO,
@@ -96,6 +99,10 @@ class ScrapeRequest(BaseModel):
         ),
         examples=["Arm", ""],
     )
+    contact_id: Optional[str] = Field(
+        default=None,
+        description="UUID of the contact record in Supabase. When provided, the scrape result is saved as a LinkedIn snapshot for freshness tracking.",
+    )
 
 
 class ExperienceEntry(BaseModel):
@@ -151,8 +158,62 @@ class ScrapeResponse(BaseModel):
     scrape_duration_seconds: Optional[float] = Field(None, description="Wall-clock time taken for the scrape.")
 
 
-# ── Singleton adapter (one browser session pool) ───────────────────────────
+# ── Singleton adapters ─────────────────────────────────────────────────────
 _adapter = NoDriverAdapter()
+
+_supabase: Optional[SupabaseAdapter] = None
+_supabase_url = os.environ.get("SUPABASE_URL", "")
+_supabase_key = os.environ.get("SUPABASE_SERVICE_KEY", "")
+if _supabase_url and _supabase_key:
+    _supabase = SupabaseAdapter(_supabase_url, _supabase_key)
+    logger.info("Supabase adapter initialised — LinkedIn snapshots will be saved.")
+else:
+    logger.warning("SUPABASE_URL or SUPABASE_SERVICE_KEY not set — snapshots will not be saved.")
+
+
+# ── Snapshot helpers ────────────────────────────────────────────────────────
+
+def _profile_hash(title: Optional[str], org: Optional[str], headline: Optional[str], skills: Optional[list]) -> str:
+    """SHA-256 of normalised key fields. Stable across scrapes when nothing changed."""
+    data = {
+        "title": (title or "").lower().strip(),
+        "org": (org or "").lower().strip(),
+        "headline": (headline or "").lower().strip(),
+        "skills": sorted((s or "").lower().strip() for s in (skills or [])),
+    }
+    return hashlib.sha256(json.dumps(data, sort_keys=True).encode()).hexdigest()
+
+
+def _has_meaningful_data(
+    title: Optional[str],
+    headline: Optional[str],
+    experience: Optional[list],
+    education: Optional[list],
+) -> bool:
+    """Return False if all key profile fields are empty — avoids storing a hash of a blank page."""
+    return bool(
+        (title or "").strip()
+        or (headline or "").strip()
+        or (experience and len(experience) > 0)
+        or (education and len(education) > 0)
+    )
+
+
+def _build_change_summary(prev: dict, current_title: Optional[str], current_org: Optional[str], headline: Optional[str]) -> dict:
+    """Return only the fields that differ between previous and current scrape."""
+    summary = {}
+    checks = [
+        ("title", prev.get("current_title"), current_title),
+        ("org",   prev.get("current_org"),   current_org),
+        ("headline", prev.get("headline"),   headline),
+    ]
+    for key, old_val, new_val in checks:
+        old = (old_val or "").strip()
+        new = (new_val or "").strip()
+        if old != new:
+            summary[f"{key}_from"] = old_val or None
+            summary[f"{key}_to"]   = new_val or None
+    return summary
 
 
 # ── Routes ─────────────────────────────────────────────────────────────────
@@ -219,6 +280,52 @@ async def scrape_profile(
     education = (
         [EducationEntry(**e) for e in result.education] if result.education else None
     )
+
+    # ── Save LinkedIn snapshot for freshness tracking ───────────────────────
+    if result.success and request.contact_id and _supabase and _has_meaningful_data(
+        result.current_title, result.headline, result.experience, result.education
+    ):
+        try:
+            new_hash = _profile_hash(
+                result.current_title,
+                result.current_organization or request.organization,
+                result.headline,
+                result.skills,
+            )
+            prev = await _supabase.get_latest_linkedin_snapshot(request.contact_id)
+            data_changed = (prev is None) or (prev["profile_hash"] != new_hash)
+            change_summary = _build_change_summary(
+                prev or {},
+                result.current_title,
+                result.current_organization or request.organization,
+                result.headline,
+            ) if data_changed and prev else {}
+
+            snapshot = {
+                "contact_id":    request.contact_id,
+                "profile_hash":  new_hash,
+                "data_changed":  data_changed,
+                "headline":      result.headline,
+                "current_title": result.current_title,
+                "current_org":   result.current_organization or request.organization or None,
+                "location":      result.location,
+                "experience":    [e.model_dump(by_alias=True) for e in experience] if experience else None,
+                "education":     [e.model_dump(by_alias=True) for e in education] if education else None,
+                "skills":        result.skills,
+                "change_summary": change_summary or None,
+            }
+            await _supabase.save_linkedin_snapshot(snapshot)
+            logger.info(
+                f"[Snapshot] Saved for contact {request.contact_id} — "
+                f"changed={data_changed}"
+            )
+        except Exception as snap_err:
+            logger.warning(f"[Snapshot] Failed to save snapshot: {snap_err}")
+    elif result.success and request.contact_id and _supabase:
+        logger.warning(
+            f"[Snapshot] Skipped for contact {request.contact_id} — "
+            f"no meaningful profile data returned (blank page or auth wall)"
+        )
 
     return ScrapeResponse(
         success=result.success,
