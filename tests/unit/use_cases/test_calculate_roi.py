@@ -50,8 +50,8 @@ class TestCalculateROIUseCaseExecute:
 
     def test_aggregates_api_costs(self, use_case):
         economics = [
-            make_economics(zerobounce_cost_usd=0.004),
-            make_economics(zerobounce_cost_usd=0.004, claude_cost_usd=0.012),
+            make_economics(claude_cost_usd=0.008),
+            make_economics(claude_cost_usd=0.012),
         ]
         request = CalculateROIRequest(economics_list=economics, batch_id="b")
         response = use_case.execute(request)

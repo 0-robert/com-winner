@@ -27,22 +27,21 @@ class TestAgentEconomicsTotalApiCost:
         econ = make_economics()
         assert econ.total_api_cost_usd == 0.0
 
-    def test_sums_zerobounce_and_claude_costs(self):
-        econ = make_economics(zerobounce_cost_usd=0.004, claude_cost_usd=0.012)
+    def test_sums_claude_costs(self):
+        econ = make_economics(claude_cost_usd=0.016)
         assert econ.total_api_cost_usd == pytest.approx(0.016, abs=1e-9)
 
     def test_rounds_to_six_decimal_places(self):
         econ = AgentEconomics(
             contact_id="x",
-            zerobounce_cost_usd=0.0000001,
             claude_cost_usd=0.0000002,
         )
-        # round(0.0000003, 6) = 0.0
+        # round(0.0000002, 6) = 0.0
         assert econ.total_api_cost_usd == 0.0
 
-    def test_fractional_costs_summed_correctly(self):
-        econ = make_economics(zerobounce_cost_usd=0.001234, claude_cost_usd=0.005678)
-        expected = round(0.001234 + 0.005678, 6)
+    def test_fractional_costs_rounded_correctly(self):
+        econ = make_economics(claude_cost_usd=0.005678)
+        expected = round(0.005678, 6)
         assert econ.total_api_cost_usd == expected
 
 
@@ -87,40 +86,33 @@ class TestAgentEconomicsValueGenerated:
 
 class TestAgentEconomicsCalculateNetROI:
     def test_returns_large_sentinel_when_zero_api_cost(self):
-        econ = make_economics(zerobounce_cost_usd=0.0, claude_cost_usd=0.0)
+        econ = make_economics(claude_cost_usd=0.0)
         assert econ.calculate_net_roi() == 999_999.0
 
     def test_returns_large_sentinel_when_api_cost_below_threshold(self):
         # cost < 0.000001 triggers sentinel
-        econ = make_economics(zerobounce_cost_usd=0.0000005)
+        econ = make_economics(claude_cost_usd=0.0000005)
         assert econ.calculate_net_roi() == 999_999.0
 
     def test_roi_formula_is_correct(self):
-        econ = make_economics(zerobounce_cost_usd=0.004, claude_cost_usd=0.0,
-                              replacement_found=False)
+        econ = make_economics(claude_cost_usd=0.004, replacement_found=False)
         value = econ.estimated_value_generated_usd
         cost = econ.total_api_cost_usd
         expected = round(((value - cost) / cost) * 100, 2)
         assert econ.calculate_net_roi() == expected
 
     def test_roi_is_positive_when_value_exceeds_cost(self):
-        # $2.50 value vs $0.004 cost → very high ROI
-        econ = make_economics(zerobounce_cost_usd=0.004)
+        econ = make_economics(claude_cost_usd=0.004)
         assert econ.calculate_net_roi() > 0
 
     def test_roi_rounds_to_two_decimal_places(self):
-        econ = make_economics(zerobounce_cost_usd=0.003, claude_cost_usd=0.007)
+        econ = make_economics(claude_cost_usd=0.010)
         roi = econ.calculate_net_roi()
         assert roi == round(roi, 2)
 
-    @pytest.mark.parametrize("zb_cost, claude_cost", [
-        (0.004, 0.0),
-        (0.004, 0.010),
-        (0.004, 0.050),
-        (0.001, 0.020),
-    ])
-    def test_roi_positive_for_reasonable_cost_scenarios(self, zb_cost, claude_cost):
-        econ = make_economics(zerobounce_cost_usd=zb_cost, claude_cost_usd=claude_cost)
+    @pytest.mark.parametrize("claude_cost", [0.004, 0.010, 0.050, 0.020])
+    def test_roi_positive_for_reasonable_cost_scenarios(self, claude_cost):
+        econ = make_economics(claude_cost_usd=claude_cost)
         assert econ.calculate_net_roi() > 0
 
 
@@ -182,8 +174,8 @@ class TestValueProofReceiptFromList:
 
     def test_total_api_cost_sums_all_contacts(self):
         economics = [
-            make_economics(zerobounce_cost_usd=0.004),
-            make_economics(zerobounce_cost_usd=0.004, claude_cost_usd=0.010),
+            make_economics(claude_cost_usd=0.004),
+            make_economics(claude_cost_usd=0.014),
         ]
         receipt = ValueProofReceipt.from_economics_list("batch", economics)
         assert receipt.total_api_cost_usd == pytest.approx(0.018, abs=1e-6)

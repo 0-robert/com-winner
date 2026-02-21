@@ -22,7 +22,6 @@ class Config:
     langfuse_public_key: str
     langfuse_secret_key: str
     langfuse_base_url: str
-    zerobounce_api_key: str
 
     # Agent settings
     batch_limit: int = 50
@@ -55,7 +54,6 @@ class Config:
             langfuse_public_key=os.environ["LANGFUSE_PUBLIC_KEY"],
             langfuse_secret_key=os.environ["LANGFUSE_SECRET_KEY"],
             langfuse_base_url=os.environ["LANGFUSE_BASE_URL"],
-            zerobounce_api_key=os.getenv("ZEROBOUNCE_API_KEY", ""),
             batch_limit=int(os.getenv("BATCH_LIMIT", "50")),
             batch_concurrency=int(os.getenv("BATCH_CONCURRENCY", "5")),
         )
