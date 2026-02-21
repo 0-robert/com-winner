@@ -1,0 +1,17 @@
+[coverage:run]
+omit =
+    # Streamlit UI — not unit-testable without a running Streamlit server
+    */frontend/*
+    # CamoUFox adapter requires an optional external browser dependency
+    */adapters/camofox_adapter.py
+
+[coverage:report]
+exclude_lines =
+    # Standard pragmas and defensive guards
+    pragma: no cover
+    def __repr__
+    # Abstract method bodies are never executed directly
+    raise NotImplementedError
+    @(abc\.)?abstractmethod
+    # Type-checking imports
+    if TYPE_CHECKING:
