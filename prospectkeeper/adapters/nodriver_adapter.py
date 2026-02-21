@@ -67,33 +67,50 @@ class NoDriverAdapter(ILinkedInGateway):
     ) -> LinkedInResult:
         import nodriver as uc
 
-        browser = await uc.start(headless=False)
+        logger.info(f"[Tier2] Starting nodriver for {contact_name}")
+        # Using headless=False as requested/implied by "tab is opening"
+        # Removing no_sandbox=True as it's often problematic on macOS
+        try:
+            browser = await uc.start(headless=False)
+        except Exception as startup_err:
+            logger.error(f"[Tier2] Failed to start browser: {startup_err}")
+            return LinkedInResult(success=False, error=f"Browser startup failed: {startup_err}")
+
         try:
             # ── 1. Inject cookies ─────────────────────────────────────────────
-            page = await browser.get("https://www.linkedin.com/")
-            await page.sleep(1.5)
+            # Navigate to a blank page first to set cookies for the domain
+            page = await browser.get("https://www.linkedin.com/robots.txt")
+            await page.sleep(1.0)
+            
             cookies = self._build_cookies(uc)
             if cookies:
                 await page.send(uc.cdp.network.set_cookies(cookies=cookies))
                 logger.debug(f"[Tier2] Injected {len(cookies)} cookies")
 
             # ── 2. Navigate to profile ────────────────────────────────────────
+            logger.info(f"[Tier2] Navigating to {linkedin_url}")
+            # Use the existing page/tab instead of opening a new one if possible
+            # browser.get() usually creates a new tab if no tab is active, 
+            # or uses the existing one.
             page = await browser.get(linkedin_url)
-            try:
-                await page.wait_for(selector="h1", timeout=12)
-            except asyncio.TimeoutError:
-                logger.warning(f"[Tier2] h1 not found for {contact_name}")
+            
+            # Wait for initial load
+            await asyncio.sleep(5)
 
             # ── 3. Auth-wall check ────────────────────────────────────────────
             current_url = page.target.url
+            logger.debug(f"[Tier2] Current URL: {current_url}")
+            
             if any(kw in current_url for kw in ("authwall", "checkpoint", "login", "uas/authenticate")):
                 logger.warning("[Tier2] Auth wall detected")
                 await page.save_screenshot("debug_linkedin_authwall.png")
                 return LinkedInResult(success=False, blocked=True, error="Auth wall")
 
-            # ── 4. Get main profile HTML (with retry on CDP context errors) ───
+            # ── 4. Get main profile HTML ──────────────────────────────────────
+            # Additional wait for SPA content to settle
             await page.sleep(2)
             await page.save_screenshot("debug_linkedin.png")
+            
             html = await self._get_html(page)
             if not html:
                 return LinkedInResult(
@@ -102,29 +119,26 @@ class NoDriverAdapter(ILinkedInGateway):
 
             with open("debug_linkedin.html", "w", encoding="utf-8") as f:
                 f.write(html)
-            logger.debug(f"[Tier2] Main profile HTML: {len(html):,} bytes")
+            logger.info(f"[Tier2] Captured {len(html):,} bytes of HTML")
 
             # ── 5. Parse main profile ─────────────────────────────────────────
             soup = BeautifulSoup(html, "html.parser")
             profile = self._parse_main_profile(soup)
 
-            # ── 6. Fetch detail pages for complete education + skills ──────────
+            # ── 6. Fetch detail pages ─────────────────────────────────────────
             detail_links = profile.pop("detailLinks", {})
-            profile["education"], profile["skills"] = await self._fetch_detail_pages(
-                browser, detail_links,
-                education=profile.get("education", []),
-                skills=profile.get("skills", []),
-            )
-
-            logger.debug(
-                f"[Tier2] name={profile.get('name')!r} "
-                f"exp={len(profile.get('experience', []))} "
-                f"edu={len(profile.get('education', []))} "
-                f"skills={len(profile.get('skills', []))}"
-            )
+            if detail_links:
+                profile["education"], profile["skills"] = await self._fetch_detail_pages(
+                    browser, detail_links,
+                    education=profile.get("education", []),
+                    skills=profile.get("skills", []),
+                )
 
             return self._build_result(profile, contact_name, organization, current_url)
 
+        except Exception as e:
+            logger.exception(f"[Tier2] Unexpected error during scraping: {e}")
+            raise
         finally:
             browser.stop()
 
@@ -132,10 +146,10 @@ class NoDriverAdapter(ILinkedInGateway):
 
     @staticmethod
     async def _get_html(page, retries: int = 3) -> str:
-        """Get page HTML via CDP, retrying on context-invalidation errors."""
+        """Get page HTML via CDP using backend_node_id (stable across SPA navigation)."""
         for attempt in range(retries):
             try:
-                html = await page.evaluate("document.body.outerHTML", return_by_value=True)
+                html = await page.get_content()
                 return html or ""
             except Exception as e:
                 if attempt < retries - 1:
