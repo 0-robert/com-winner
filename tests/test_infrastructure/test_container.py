@@ -23,7 +23,7 @@ FAKE_CONFIG = Config(
     anthropic_api_key="sk-ant-fake",
     langfuse_public_key="pk-langfuse-fake",
     langfuse_secret_key="sk-langfuse-fake",
-    zerobounce_api_key="zb-fake",
+    langfuse_base_url="https://fake.langfuse.com",
     batch_limit=50,
     batch_concurrency=5,
 )
@@ -55,10 +55,6 @@ class TestContainerWiring:
     def test_container_has_scraper(self):
         container = make_container()
         assert container.scraper is not None
-
-    def test_container_has_email_verifier(self):
-        container = make_container()
-        assert container.email_verifier is not None
 
     def test_container_has_email_sender(self):
         container = make_container()

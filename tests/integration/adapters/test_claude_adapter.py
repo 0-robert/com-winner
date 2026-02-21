@@ -23,8 +23,6 @@ def make_adapter() -> ClaudeAdapter:
     with patch("prospectkeeper.adapters.claude_adapter.anthropic.Anthropic"):
         adapter = ClaudeAdapter(
             anthropic_api_key="sk-ant-test",
-            langfuse_public_key="pk-langfuse-test",
-            langfuse_secret_key="sk-langfuse-test",
         )
     return adapter
 

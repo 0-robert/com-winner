@@ -39,6 +39,7 @@ export interface Contact {
     experience?: ExperienceEntry[];
     education?: EducationEntry[];
     skills?: string[];
+    employment_confidence?: number;
     // LinkedIn freshness
     last_scraped_at?: string | null;
     last_changed_at?: string | null;

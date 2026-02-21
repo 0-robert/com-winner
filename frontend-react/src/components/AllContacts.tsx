@@ -336,7 +336,6 @@ export default function AllContacts() {
                                     {selectedNotesContact?.needs_human_review ? (
                                         <>
                                             <span className="text-orange-600 font-bold">[!] FLAG: NEEDS REVIEW</span><br /><br />
-                                            - ZeroBounce returned valid email.<br />
                                             - Could not locate on district website.<br />
                                             - LinkedIn profile is private or not exact match.<br />
                                             - Claude analysis: "Uncertain if still at {selectedNotesContact?.organization}. Proceed with caution."<br />
@@ -344,7 +343,6 @@ export default function AllContacts() {
                                     ) : (
                                         <>
                                             <span className="text-green-600 font-bold">[✓] VERIFIED ACTIVE</span><br /><br />
-                                            - ZeroBounce returned valid email.<br />
                                             - Found on {selectedNotesContact?.organization} staff page.<br />
                                             - No conflicting data on LinkedIn.<br />
                                             - Claude analysis: "High confidence still active."<br />
@@ -436,6 +434,17 @@ export default function AllContacts() {
                                                 // table so fetchContacts() doesn't return them
                                                 setContacts(prev => prev.map(c =>
                                                     c.id === selectedMoreContact.id
+                                                        ? {
+                                                            ...c,
+                                                            title: data.current_title || c.title,
+                                                            organization: data.current_organization || c.organization,
+                                                            status: data.still_at_organization ? 'active' : 'unknown',
+                                                            needs_human_review: !data.still_at_organization,
+                                                            experience: data.experience,
+                                                            education: data.education,
+                                                            skills: data.skills,
+                                                            employment_confidence: data.employment_confidence,
+                                                        }
                                                         ? { ...c, experience: data.experience, education: data.education, skills: data.skills }
                                                         : c
                                                 ));
@@ -580,6 +589,11 @@ export default function AllContacts() {
                                         </p>
                                         <div className="mt-4 pt-4 border-t border-blue-500/50 flex items-center justify-between">
                                             <span className="text-[10px] uppercase font-bold text-blue-200">Confidence Score</span>
+                                            <span className="text-[16px] font-bold">
+                                                {selectedProfileContact.employment_confidence != null
+                                                    ? `${Math.round(selectedProfileContact.employment_confidence * 100)}%`
+                                                    : '—'}
+                                            </span>
                                             <span className="text-[16px] font-bold">{getConfidenceScore(selectedProfileContact)}</span>
                                         </div>
                                     </div>
