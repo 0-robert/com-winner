@@ -15,6 +15,7 @@ class ContactStatus(str, Enum):
     ACTIVE = "active"
     INACTIVE = "inactive"
     UNKNOWN = "unknown"
+    PENDING_CONFIRMATION = "pending_confirmation"
     OPTED_OUT = "opted_out"
 
 

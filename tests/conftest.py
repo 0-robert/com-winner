@@ -23,7 +23,7 @@ from prospectkeeper.domain.interfaces.i_email_verification_gateway import (
     EmailStatus,
     EmailVerificationResult,
 )
-from prospectkeeper.domain.interfaces.i_linkedin_gateway import LinkedInResult
+from prospectkeeper.domain.interfaces.i_email_sender_gateway import SendEmailResult
 from prospectkeeper.domain.interfaces.i_scraper_gateway import ScraperResult
 
 
@@ -155,18 +155,14 @@ def make_scraper_result(
     )
 
 
-def make_linkedin_result(
+def make_send_email_result(
     success: bool = True,
-    still_at_organization: Optional[bool] = True,
-    profile_url: Optional[str] = "https://linkedin.com/in/janesmith",
-    blocked: bool = False,
+    email: str = "jane.smith@acme.com",
     error: Optional[str] = None,
-) -> LinkedInResult:
-    return LinkedInResult(
+) -> SendEmailResult:
+    return SendEmailResult(
         success=success,
-        still_at_organization=still_at_organization,
-        profile_url=profile_url,
-        blocked=blocked,
+        email=email,
         error=error,
     )
 
@@ -219,10 +215,10 @@ def mock_scraper():
 
 
 @pytest.fixture
-def mock_linkedin():
-    """AsyncMock for ILinkedInGateway. Defaults to confirming active."""
+def mock_email_sender():
+    """AsyncMock for IEmailSenderGateway. Defaults to successful send."""
     mock = AsyncMock()
-    mock.verify_employment.return_value = make_linkedin_result()
+    mock.send_confirmation.return_value = make_send_email_result()
     return mock
 
 
