@@ -7,6 +7,7 @@ Cost: $0.00 (local compute only)
 
 import asyncio
 import logging
+import os
 import re
 from typing import Optional
 
@@ -64,8 +65,38 @@ class CamoUFoxAdapter(ILinkedInGateway):
         """
         from camoufox.async_api import AsyncCamoufox
 
-        async with AsyncCamoufox(headless=True, geoip=True) as browser:
+        async with AsyncCamoufox(headless=False) as browser:
             page = await browser.new_page()
+
+            # Inject LinkedIn auth cookies if available
+            li_at_cookie = os.environ.get("LINKEDIN_LI_AT")
+            cookies_string = os.environ.get("LINKEDIN_COOKIES_STRING")
+            
+            cookies_to_add = []
+            
+            if cookies_string:
+                cookie_parts = cookies_string.split(";")
+                for part in cookie_parts:
+                    if "=" in part:
+                        name, value = part.strip().split("=", 1)
+                        cookies_to_add.append({
+                            "name": name.strip(),
+                            "value": value.strip(' "'),
+                            "domain": ".linkedin.com",
+                            "path": "/",
+                            "secure": True,
+                        })
+            elif li_at_cookie:
+                cookies_to_add.append({
+                    "name": "li_at",
+                    "value": li_at_cookie,
+                    "domain": ".linkedin.com",
+                    "path": "/",
+                    "secure": True,
+                })
+                
+            if cookies_to_add:
+                await page.context.add_cookies(cookies_to_add)
 
             # Determine URL to visit
             target_url = linkedin_url
@@ -76,14 +107,22 @@ class CamoUFoxAdapter(ILinkedInGateway):
                     f"?keywords={contact_name.replace(' ', '%20')}%20{organization.replace(' ', '%20')}"
                 )
 
-            await page.goto(target_url, wait_until="domcontentloaded")
+            await page.goto(target_url, wait_until="networkidle")
+            
+            # Wait for the main profile section or just wait a few seconds for React to render
+            try:
+                await page.wait_for_timeout(3000)
+            except:
+                pass
 
             # Check if LinkedIn blocked us
-            if "authwall" in page.url or "checkpoint" in page.url:
+            if "authwall" in page.url or "checkpoint" in page.url or "login" in page.url:
                 logger.warning("[Tier2] LinkedIn auth wall hit")
+                await page.screenshot(path="debug_linkedin.png")
                 return LinkedInResult(success=False, blocked=True, error="Auth wall")
 
             # Parse current position from profile page
+            await page.screenshot(path="debug_linkedin.png")
             page_text = await page.inner_text("body")
             return self._parse_linkedin_page(
                 page_text, contact_name, organization, page.url
