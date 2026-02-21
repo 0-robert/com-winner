@@ -2,27 +2,117 @@
 
 Autonomous B2B contact list maintenance agent. Verifies whether contacts are still active, flags uncertain ones for human review, and autonomously finds replacements for departed contacts — while tracking its exact economic ROI.
 
-Built for the **Paid.ai** track at HackEurope: every batch run produces a live **Value-Proof Receipt** showing API costs vs. human SDR hours saved.
+Built for the **Paid.ai** track at HackEurope: every batch run produces a live **Value-Proof Receipt** showing API costs vs. human SDR hours saved, and a simulated outcome-based invoice — proving its own financial value on every run.
 
 ---
 
 ## Table of Contents
 
-1. [Architecture Overview](#1-architecture-overview)
-2. [Tiered Verification Engine](#2-tiered-verification-engine)
-3. [Module Map](#3-module-map)
-4. [Database Schema](#4-database-schema)
-5. [API Keys & Environment Setup](#5-api-keys--environment-setup)
-6. [Installation](#6-installation)
-7. [Running the Agent](#7-running-the-agent)
-8. [Test Suite Guide](#8-test-suite-guide)
-9. [The Value-Proof Receipt](#9-the-value-proof-receipt)
+1. [Problem Statement & Business Case](#1-problem-statement--business-case)
+2. [The Paid.ai "Prove Your Value" Features](#2-the-paidai-prove-your-value-features)
+3. [System Context](#3-system-context)
+4. [Architecture Overview](#4-architecture-overview)
+5. [Domain Model](#5-domain-model)
+6. [Tiered Verification Engine](#6-tiered-verification-engine)
+7. [Human Review & Uncertainty](#7-human-review--uncertainty)
+8. [Data Privacy & GDPR Opt-Out](#8-data-privacy--gdpr-opt-out)
+9. [Module Map](#9-module-map)
+10. [Database Schema](#10-database-schema)
+11. [API Keys & Environment Setup](#11-api-keys--environment-setup)
+12. [Installation](#12-installation)
+13. [Running the Agent](#13-running-the-agent)
+14. [Test Suite Guide](#14-test-suite-guide)
+15. [The Value-Proof Receipt](#15-the-value-proof-receipt)
 
 ---
 
-## 1. Architecture Overview
+## 1. Problem Statement & Business Case
 
-ProspectKeeper follows **Clean Architecture** (Uncle Bob) combined with **Hexagonal Architecture** (Ports & Adapters). The domain layer has zero framework dependencies — all external services are accessed through injected interfaces.
+**The Problem:** B2B contact data decays at 20–30% per year. People change jobs, get promoted, retire, or organisations restructure. Wasted outreach on stale contacts costs companies **$10k–$50k/year** in lost SDR efficiency — time spent dialling dead numbers, emailing departed people, and manually researching who replaced them.
+
+**The Current Solution:** Either manual research (hours per week per SDR), cold-calling switchboards, or paying $10k+/year for services like ZoomInfo — which still suffer from the same decay problem because they refresh data on a slow quarterly cycle, not in real time.
+
+**The ProspectKeeper Solution:** An autonomous agent that verifies current positions, validates emails, finds replacements for departed contacts, and tracks its own exact economic ROI — deployed on demand rather than on a fixed subscription.
+
+---
+
+## 2. The Paid.ai "Prove Your Value" Features
+
+ProspectKeeper is built specifically for the Paid.ai hackathon track, which requires the agent to *prove* its financial value rather than simply completing a task.
+
+### 2.1 ROI Telemetry & Value-Proof Receipt
+
+Instead of a simple "Job Complete" log, the agent tracks its own API expenditures (ZeroBounce credits, Claude tokens) and calculates the equivalent human SDR time saved (valued at ~$30/hour). At the end of every run it produces a receipt:
+
+> *"Batch Complete: 50 Contacts Verified. 12 Replacements Found. Total API Cost: $0.42. SDR Time Saved: 4.5 hours. Estimated Value Generated: $135. Net ROI for this run: +32,000%."*
+
+See [Section 15](#15-the-value-proof-receipt) for a full example and the economic constants that drive the calculation.
+
+### 2.2 Cost-Aware Agentic Routing
+
+The agent uses an "Economic Brain" to minimise its operational costs. It escalates through tiers only when cheaper tiers fail:
+
+- **Tier 1 (Free/Cheap):** Email validation (ZeroBounce) + website scraping (BeautifulSoup)
+- **Tier 2 (Free, local compute):** LinkedIn verification via CamoUFox headless browser
+- **Tier 3 (Paid):** Deep research via Anthropic Claude
+
+See [Section 6](#6-tiered-verification-engine) for the full routing flowchart.
+
+### 2.3 Dynamic Billing Simulation
+
+The dashboard generates a simulated outcome-based invoice — charged per successful action rather than a flat monthly fee:
+
+- **$0.10** per contact verified
+- **$2.50** per replacement contact found
+
+This demonstrates what an outcome-based AI billing model looks like in practice: the customer pays only for value delivered, not for compute time or API calls.
+
+### 2.4 LLM Observability via Helicone
+
+All Claude API calls are routed through **Helicone**, a transparent proxy that gives judges (and customers) a real-time view into:
+
+- Token usage per contact
+- Cost-per-contact and cost-per-replacement
+- Latency per API call
+- Custom metadata tags per request (organisation name, contact name, tier)
+
+This makes the "Prove Your Value" story auditable — every cost claim in the receipt is backed by Helicone trace data.
+
+---
+
+## 3. System Context
+
+The following diagram shows all external actors and systems ProspectKeeper interacts with.
+
+```mermaid
+C4Context
+    title System Context for ProspectKeeper
+
+    Person(admin, "Sales / Admin User", "Views the dashboard, monitors analytics, resolves flagged items, and reviews the Value-Proof Receipt.")
+
+    System(prospectKeeper, "ProspectKeeper Agent", "Autonomous system that verifies and maintains contact data quality via automated research and tracks its own ROI.")
+
+    System_Ext(db, "Supabase (PostgreSQL)", "Backend as a Service providing the master contact records, fast PostgREST API access, and realtime updates.")
+    System_Ext(linkedin_scraper, "CamoUFox (Local Scraper)", "Hardened Firefox that mimics human behaviour to bypass bot detection for LinkedIn scraping (Tier 2).")
+    System_Ext(zerobounce, "ZeroBounce", "Provides email verification and deliverability status (Tier 1).")
+    System_Ext(claude, "Anthropic Claude", "Deep research to identify current roles and replacement contacts (Tier 3).")
+    System_Ext(website, "Company / District Websites", "Public directories containing staff assignments (Tier 1).")
+    System_Ext(observability, "Helicone", "Tracks LLM latency, token usage, cost-per-contact, and cost-per-replacement.")
+
+    Rel(admin, db, "Views and manages contacts in", "Streamlit Dashboard")
+    Rel(prospectKeeper, db, "Reads contact lists and writes updates/flags to", "PostgREST API")
+    Rel(prospectKeeper, linkedin_scraper, "Orchestrates LinkedIn profile scraping via", "Local Execution")
+    Rel(prospectKeeper, zerobounce, "Validates emails against", "REST API")
+    Rel(prospectKeeper, claude, "Sends research requests to", "Anthropic SDK via Helicone proxy")
+    Rel(prospectKeeper, website, "Scrapes staff pages from", "HTTPS / httpx")
+    Rel(prospectKeeper, observability, "Sends traces and LLM metrics to", "SDK / HTTP Headers")
+```
+
+---
+
+## 4. Architecture Overview
+
+ProspectKeeper is built on **Clean Architecture** (Uncle Bob) combined with **Hexagonal Architecture** (Ports & Adapters) and **Domain-Driven Design (DDD)**. The domain layer has zero framework dependencies — all external services are accessed only through injected interfaces.
 
 ```
 ┌─────────────────────────────────────────────────────────────────────┐
@@ -46,9 +136,63 @@ ProspectKeeper follows **Clean Architecture** (Uncle Bob) combined with **Hexago
 └─────────────────────────────────────────────────────────────────────┘
 ```
 
+### Hexagonal Architecture (Ports and Adapters)
+
+```mermaid
+%%{init: {'theme': 'base'}}%%
+flowchart TD
+    subgraph Infrastructure ["Infrastructure Layer (External Tools & UI)"]
+        DB[("Supabase\n(PostgreSQL + PostgREST)")]
+        WEB["Company / District Websites"]
+        LI["CamoUFox / Headless Firefox"]
+        CL["Claude API"]
+        OBS["Helicone"]
+        DASH["Streamlit Dashboard"]
+    end
+
+    subgraph Adapters ["Interface Adapters Layer"]
+        SFA["SupabaseAdapter"] -.->|"Implements"| IDB
+        BSA["BS4ScraperAdapter"] -.->|"Implements"| ISC
+        LIA["CamoUFoxAdapter"] -.->|"Implements"| ILI
+        CLA["ClaudeAdapter"] -.->|"Implements"| IAI
+        ZBA["ZeroBounceAdapter"] -.->|"Implements"| IEV
+        CLA -.->|"Logs traces"| OBS
+    end
+
+    subgraph Application ["Application Layer (Use Cases)"]
+        UC3("ProcessBatchUseCase")
+        UC1("VerifyContactUseCase\n(Cost-Aware Routing)")
+        UC2("CalculateROIUseCase")
+        UC2 -.->|"Renders receipt"| DASH
+    end
+
+    subgraph Domain ["Domain Layer (Core Logic — zero external deps)"]
+        IDB[["IDataRepository"]]
+        ILI[["ILinkedInGateway"]]
+        IAI[["IAIGateway"]]
+        ISC[["IScraperGateway"]]
+        IEV[["IEmailVerificationGateway"]]
+        Contact(["Entity: Contact"])
+        Result(["Entity: VerificationResult"])
+        Econ(["Entity: AgentEconomics"])
+    end
+
+    Infrastructure --> Adapters
+    Adapters --> Domain
+    Application --> Domain
+
+    UC3 --> UC1
+    UC1 --> ISC
+    UC1 --> IEV
+    UC1 --> ILI
+    UC1 --> IAI
+    UC3 --> UC2
+    UC2 --> Econ
+```
+
 ### Dependency Injection
 
-`Container` (the only place that knows about concrete implementations) wires everything together:
+`Container` is the only place that knows about concrete implementations. It wires everything together and can swap any adapter by changing a single line.
 
 ```mermaid
 graph TD
@@ -74,11 +218,104 @@ graph TD
     ProcessBatchUseCase -->|uses| CalculateROIUseCase
 ```
 
+### Why Supabase Instead of a SaaS CRM
+
+Rather than abstracting through a bulky SaaS CRM (Salesforce, HubSpot), ProspectKeeper uses **Supabase** as the central data store — giving us a full PostgreSQL database with a fast PostgREST API layer, real-time subscriptions, and Row Level Security, at zero marginal cost. The Streamlit dashboard talks directly to Supabase via the Python client. This keeps the stack minimal and every data operation auditable.
+
 ---
 
-## 2. Tiered Verification Engine
+## 5. Domain Model
 
-The economic brain of the system. Contacts are placed into either the Free or Paid tier.
+The innermost layer. Every entity natively understands that its actions are tied to real-world costs and human time.
+
+```mermaid
+classDiagram
+    class Contact {
+        +UUID id
+        +String name
+        +String email
+        +String title
+        +String organization
+        +ContactStatus status
+        +bool needs_human_review
+        +String review_reason
+        +String district_website
+        +String linkedin_url
+        +String email_hash
+        +flag_for_review(reason)
+        +clear_review_flag()
+        +update_email(new_email)
+        +mark_active()
+        +mark_inactive()
+        +opt_out()
+    }
+
+    class ContactStatus {
+        <<enumeration>>
+        ACTIVE
+        INACTIVE
+        UNKNOWN
+        OPTED_OUT
+    }
+
+    class VerificationResult {
+        +UUID contact_id
+        +ContactStatus status
+        +AgentEconomics economics
+        +bool low_confidence_flag
+        +String replacement_name
+        +String replacement_email
+        +String replacement_title
+        +List~String~ evidence_urls
+        +String notes
+        +has_replacement() bool
+        +needs_human_review() bool
+    }
+
+    class AgentEconomics {
+        +UUID contact_id
+        +float zerobounce_cost_usd
+        +float claude_cost_usd
+        +int tokens_used
+        +int highest_tier_used
+        +bool verified
+        +bool replacement_found
+        +bool flagged_for_review
+        +total_api_cost_usd() float
+        +labor_hours_saved() float
+        +estimated_value_generated_usd() float
+        +calculate_net_roi() float
+    }
+
+    class ValueProofReceipt {
+        +String batch_id
+        +int contacts_processed
+        +int contacts_verified_active
+        +int contacts_marked_inactive
+        +int replacements_found
+        +int flagged_for_review
+        +float total_api_cost_usd
+        +float total_labor_hours_saved
+        +float total_value_generated_usd
+        +float simulated_invoice_usd
+        +net_roi_percentage() float
+        +cost_per_contact_usd() float
+        +cost_per_replacement_usd() float
+        +format_receipt() String
+        +from_economics_list(list) ValueProofReceipt
+    }
+
+    Contact *-- ContactStatus
+    VerificationResult *-- ContactStatus
+    VerificationResult *-- AgentEconomics
+    ValueProofReceipt ..> AgentEconomics : aggregates list of
+```
+
+---
+
+## 6. Tiered Verification Engine
+
+The economic brain of the system. Each tier is invoked only if cheaper tiers fail to produce a confident result, keeping per-contact API costs as low as possible.
 
 ```mermaid
 flowchart TD
@@ -116,7 +353,37 @@ flowchart TD
 
 ---
 
-## 3. Module Map
+## 7. Human Review & Uncertainty
+
+### V1: Timer-Based Abandonment
+
+The first release uses strict timeout rules to handle uncertainty. If scraping or Claude takes too long, or returns ambiguous output instead of an explicit match/no-match, the system **abandons the attempt immediately** and moves to the next tier — or sets `needs_human_review = True` if all tiers are exhausted. Speed is prioritised over completeness to prevent the batch from stalling on hard cases.
+
+Contacts land in the human review queue when:
+- All three tiers complete without a confident verdict
+- Claude returns `contact_still_active: null` (explicitly uncertain)
+- A timeout or unexpected exception is caught at any tier
+
+### Future: Confidence Scoring
+
+As stable baseline data accumulates from real batch runs, the timer-based approach will migrate to a **statistical confidence scoring** system. Each tier's output will contribute a weighted confidence score (0.0–1.0). Only when the aggregated score crosses a threshold (e.g. 0.85) will a verdict be committed automatically. Contacts below threshold enter human review rather than being forced to a binary decision.
+
+---
+
+## 8. Data Privacy & GDPR Opt-Out
+
+The `Contact` entity has a built-in `opt_out()` method designed for GDPR/CCPA compliance. When called:
+
+1. The contact's `name`, `email`, `title`, and `linkedin_url` fields are **anonymised** (replaced with placeholder strings).
+2. A **SHA-256 hash of the original email** is retained in `email_hash` — this allows the system to recognise future opt-out requests from the same address without storing the PII itself.
+3. The contact status is set to `OPTED_OUT`, permanently excluding the record from all future batch verification runs.
+4. The `updated_at` timestamp is refreshed.
+
+No data is deleted from the database row — the row is retained for audit and billing reconciliation purposes, but all identifying information is irreversibly removed.
+
+---
+
+## 9. Module Map
 
 ```
 com-winner/
@@ -174,64 +441,9 @@ com-winner/
 └── requirements.txt
 ```
 
-### Key Data Flow (one contact verification)
-
-```mermaid
-sequenceDiagram
-    participant CLI as main.py
-    participant PB as ProcessBatchUseCase
-    participant DB as SupabaseAdapter
-    participant VC as VerifyContactUseCase
-    participant ZB as ZeroBounceAdapter
-    participant SC as BS4ScraperAdapter
-    participant LI as CamoUFoxAdapter
-    participant AI as ClaudeAdapter
-
-    CLI->>PB: execute(ProcessBatchRequest)
-    PB->>DB: get_contacts_for_verification(limit=50)
-    DB-->>PB: [Contact, ...]
-
-    loop each contact (bounded by asyncio.Semaphore)
-        PB->>VC: execute(VerifyContactRequest)
-        VC->>ZB: verify_email(email)
-        ZB-->>VC: EmailVerificationResult
-
-        alt email definitively invalid
-            VC-->>PB: INACTIVE
-        else proceed
-            VC->>SC: find_contact_on_district_site(...)
-            SC-->>VC: ScraperResult
-
-            alt name found on site
-                VC-->>PB: ACTIVE
-            else escalate
-                VC->>LI: verify_employment(...)
-                LI-->>VC: LinkedInResult
-
-                alt confirmed still at org
-                    VC-->>PB: ACTIVE
-                else escalate
-                    VC->>AI: research_contact(...)
-                    AI-->>VC: AIResearchResult
-                    VC-->>PB: ACTIVE / INACTIVE / UNKNOWN
-                end
-            end
-        end
-
-        PB->>DB: save_contact(updated)
-        PB->>DB: save_verification_result(audit)
-        opt replacement found
-            PB->>DB: insert_contact(replacement)
-        end
-    end
-
-    PB->>PB: CalculateROIUseCase.execute(economics_list)
-    PB-->>CLI: ProcessBatchResponse(receipt, results, errors)
-```
-
 ---
 
-## 4. Database Schema
+## 10. Database Schema
 
 Three tables in Supabase/PostgreSQL. Apply migrations via the Supabase dashboard SQL editor or CLI.
 
@@ -253,7 +465,7 @@ contacts
 
 verification_results              (audit log — one row per verification run)
 ├── id                UUID  PK
-├── contact_id        UUID  FK → contacts.id
+├── contact_id        UUID  FK → contacts.id  ON DELETE CASCADE
 ├── status            TEXT
 ├── low_confidence_flag  BOOLEAN
 ├── replacement_name  TEXT
@@ -289,7 +501,7 @@ batch_receipts                    (one row per batch run — the ROI receipt)
 
 ---
 
-## 5. API Keys & Environment Setup
+## 11. API Keys & Environment Setup
 
 Copy `.env.example` to `.env` and fill in each key:
 
@@ -304,13 +516,13 @@ cp .env.example .env
 | `SUPABASE_URL` | Supabase Dashboard → Project Settings → API → Project URL | `https://xxxx.supabase.co` |
 | `SUPABASE_SERVICE_KEY` | Supabase Dashboard → Project Settings → API → `service_role` key | Use **service role**, not anon — it bypasses RLS for backend writes |
 | `ANTHROPIC_API_KEY` | console.anthropic.com → API Keys | Starts with `sk-ant-` |
-| `HELICONE_API_KEY` | helicone.ai → Settings → API Keys | Starts with `sk-helicone-` — provides LLM observability and cost tracking |
+| `HELICONE_API_KEY` | helicone.ai → Settings → API Keys | Starts with `sk-helicone-` — required for LLM observability and cost tracking |
 
 ### Optional Keys
 
 | Variable | Where to get it | Effect if absent |
 |----------|----------------|-----------------|
-| `ZEROBOUNCE_API_KEY` | zerobounce.net → API | Tier 1a email validation is skipped; all emails treated as UNKNOWN and passed to scraper |
+| `ZEROBOUNCE_API_KEY` | zerobounce.net → API | Tier 1a skipped; all emails treated as UNKNOWN and passed to the scraper |
 
 ### Agent Tuning
 
@@ -321,11 +533,11 @@ cp .env.example .env
 
 ### Why Helicone Is Required
 
-Helicone acts as a transparent proxy in front of the Anthropic API, capturing token counts, costs, latency, and per-call metadata for the ROI dashboard. Claude API calls are routed through `https://anthropic.helicone.ai/v1` with your Helicone key in the headers. If you don't want Helicone, remove it from `claude_adapter.py` and drop `HELICONE_API_KEY` to optional — but you'll lose the observability dashboard.
+All Claude API calls are routed through `https://anthropic.helicone.ai/v1` with your Helicone key in the request headers. Helicone captures token counts, costs, latency, and custom metadata (organisation name, contact name, tier) — this data is what makes the Value-Proof Receipt auditable. If you want to remove the Helicone dependency, update `claude_adapter.py` to use the standard Anthropic base URL and downgrade `HELICONE_API_KEY` to optional, but you lose the observability dashboard.
 
 ---
 
-## 6. Installation
+## 12. Installation
 
 ```bash
 # 1. Clone and enter the project
@@ -341,7 +553,7 @@ pip install -r requirements.txt
 
 # 4. Copy and fill in environment variables
 cp .env.example .env
-# edit .env with your keys (see section 5 above)
+# edit .env with your keys (see section 11 above)
 
 # 5. Apply database migrations
 # Open Supabase Dashboard → SQL Editor and run:
@@ -351,7 +563,7 @@ cp .env.example .env
 
 ### Optional: LinkedIn Tier (CamoUFox)
 
-Tier 2 (LinkedIn scraping) requires two additional installs. Commented out in `requirements.txt` intentionally — only install if you need LinkedIn verification:
+Tier 2 (LinkedIn scraping) requires two additional installs. Commented out in `requirements.txt` intentionally — install only if you need LinkedIn verification:
 
 ```bash
 pip install camoufox[geoip]
@@ -360,7 +572,7 @@ playwright install firefox
 
 ---
 
-## 7. Running the Agent
+## 13. Running the Agent
 
 ### Batch verification run
 
@@ -395,7 +607,7 @@ Four pages:
 
 ---
 
-## 8. Test Suite Guide
+## 14. Test Suite Guide
 
 363 tests, 99.66% coverage. Zero external network calls — all adapters are mocked.
 
@@ -506,7 +718,7 @@ pytest -m e2e           # Live credentials required (excluded by default)
 
 ---
 
-## 9. The Value-Proof Receipt
+## 15. The Value-Proof Receipt
 
 At the end of every batch run, ProspectKeeper prints (and stores in Supabase) a receipt like this:
 
@@ -545,8 +757,8 @@ TOTAL DUE          :              $27.50
 
 | Constant | Value | Meaning |
 |----------|-------|---------|
-| `HUMAN_HOURLY_RATE_USD` | $30.00 | SDR labour cost assumed |
-| `MINUTES_PER_CONTACT_VERIFICATION` | 5 min | Time a human takes per contact |
-| `MINUTES_PER_REPLACEMENT_RESEARCH` | 15 min | Extra time for replacement research |
+| `HUMAN_HOURLY_RATE_USD` | $30.00 | SDR labour cost per hour |
+| `MINUTES_PER_CONTACT_VERIFICATION` | 5 min | Time a human takes to manually check one contact |
+| `MINUTES_PER_REPLACEMENT_RESEARCH` | 15 min | Additional time to research a replacement |
 | `BILLED_RATE_PER_VERIFICATION_USD` | $0.10 | Outcome-based charge per verification |
 | `BILLED_RATE_PER_REPLACEMENT_USD` | $2.50 | Outcome-based charge per replacement found |

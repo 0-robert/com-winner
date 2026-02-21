@@ -18,6 +18,13 @@ class LinkedInResult:
     profile_url: Optional[str] = None
     error: Optional[str] = None
     blocked: bool = False  # True if LinkedIn blocked the request
+    # Extended profile fields (populated by NoDriverAdapter)
+    name: Optional[str] = None
+    headline: Optional[str] = None
+    location: Optional[str] = None
+    experience: Optional[list] = None  # list of {title, company, dateRange, isCurrent, description}
+    education: Optional[list] = None   # list of {institution, degree, dateRange}
+    skills: Optional[list] = None      # list of skill name strings
 
 
 class ILinkedInGateway(ABC):
