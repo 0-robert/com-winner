@@ -1,5 +1,19 @@
 export type ContactStatus = 'active' | 'inactive' | 'unknown' | 'opted_out';
 
+export interface ExperienceEntry {
+    title?: string;
+    company?: string;
+    dateRange?: string;
+    isCurrent?: boolean;
+    description?: string;
+}
+
+export interface EducationEntry {
+    institution?: string;
+    degree?: string;
+    dateRange?: string;
+}
+
 export interface Contact {
     id: string;
     name: string;
@@ -11,8 +25,11 @@ export interface Contact {
     review_reason: string | null;
     district_website: string | null;
     linkedin_url: string | null;
-    created_at: string;
-    updated_at: string;
+    created_at?: string;
+    updated_at?: string;
+    experience?: ExperienceEntry[];
+    education?: EducationEntry[];
+    skills?: string[];
 }
 
 export interface VerificationResult {

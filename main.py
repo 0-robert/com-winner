@@ -17,6 +17,8 @@ import csv
 import sys
 import argparse
 import logging
+from dotenv import load_dotenv
+load_dotenv()
 import threading
 from prospectkeeper.adapters.webhook_adapter import start as start_webhook
 
@@ -28,6 +30,8 @@ logging.basicConfig(
     datefmt="%H:%M:%S",
 )
 logger = logging.getLogger("prospectkeeper")
+
+from langfuse import get_client as get_langfuse_client
 
 
 def parse_args():
@@ -83,6 +87,9 @@ async def run_batch(limit: int, concurrency: int, tier: str):
         print(f"\n⚠ {len(response.errors)} error(s) during batch:")
         for err in response.errors:
             print(f"  • {err}")
+
+    # Flush OTel spans to Langfuse before process exits
+    get_langfuse_client().flush()
 
 
 async def import_csv(filepath: str):

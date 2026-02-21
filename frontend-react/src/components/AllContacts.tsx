@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react';
+import { useState } from 'react';
 import { supabase } from '../lib/supabase';
 import type { Contact } from '../types';
 import { MoreVertical, FileText, CheckCircle2, X, ExternalLink, RefreshCw, Edit, Trash } from 'lucide-react';
@@ -11,31 +11,17 @@ const STATUS_CONFIG = {
 } as const;
 
 export default function AllContacts() {
-    const [contacts, setContacts] = useState<Contact[]>([]);
     const [activeTab, setActiveTab] = useState('All Contacts');
     const [selectedNotesContact, setSelectedNotesContact] = useState<Contact | null>(null);
     const [selectedMoreContact, setSelectedMoreContact] = useState<Contact | null>(null);
-
-    useEffect(() => {
-        fetchContacts();
-    }, []);
-
-    async function fetchContacts() {
-        try {
-            const { data } = await supabase.from('contacts').select('*').order('name');
-            setContacts(data || []);
-        } catch (err) {
-            console.error(err);
-        }
-    }
-
-    const displayContacts = contacts.length > 0 ? contacts : [
-        { id: '1', name: 'Courtney Henry', title: 'VP of Engineering', email: 'courtney@example.com', organization: 'Prodify', status: 'active', needs_human_review: false },
-        { id: '2', name: 'Tom Cook', title: 'Director', email: 'tom@example.com', organization: 'Acme Corp', status: 'unknown', needs_human_review: true },
-        { id: '3', name: 'Jane Doe', title: 'Head of Growth', email: 'jane@example.com', organization: 'Stark Ind', status: 'active', needs_human_review: false },
-        { id: '4', name: 'John Smith', title: 'Sales Executive', email: 'john@smith.com', organization: 'Globex', status: 'inactive', needs_human_review: false },
-        { id: '5', name: 'Alice Johnson', title: 'CMO', email: 'alice@company.com', organization: 'Initech', status: 'opted_out', needs_human_review: false },
-    ] as Contact[];
+    const [selectedProfileContact, setSelectedProfileContact] = useState<Contact | null>(null);
+    const [contacts, setContacts] = useState<Contact[]>([
+        { id: '1', name: 'Keanu Czirjak', title: 'SWE Apprentice', email: 'keanu@example.com', organization: 'Arm', status: 'active', needs_human_review: false, linkedin_url: 'https://www.linkedin.com/in/keanuczirjak/' },
+        { id: '2', name: 'Keanu Czirjak', title: 'SWE Apprentice', email: 'keanu2@example.com', organization: 'Arm', status: 'unknown', needs_human_review: true, linkedin_url: 'https://www.linkedin.com/in/keanuczirjak/' },
+        { id: '3', name: 'Keanu Czirjak', title: 'SWE Apprentice', email: 'keanu3@example.com', organization: 'Arm', status: 'active', needs_human_review: false, linkedin_url: 'https://www.linkedin.com/in/keanuczirjak/' },
+        { id: '4', name: 'Keanu Czirjak', title: 'SWE Apprentice', email: 'keanu4@example.com', organization: 'Arm', status: 'inactive', needs_human_review: false, linkedin_url: 'https://www.linkedin.com/in/keanuczirjak/' },
+        { id: '5', name: 'Keanu Czirjak', title: 'SWE Apprentice', email: 'keanu5@example.com', organization: 'Arm', status: 'opted_out', needs_human_review: false, linkedin_url: 'https://www.linkedin.com/in/keanuczirjak/' },
+    ] as Contact[]);
 
     const tabs = ['All Contacts', 'Review Required', 'Departed'];
 
@@ -52,7 +38,6 @@ export default function AllContacts() {
 
             <div className="bg-white rounded border border-slate-200 p-6 shadow-sm">
 
-                {/* Tabs & Controls */}
                 <div className="flex items-center justify-between mb-6 pb-4 border-b border-slate-200">
                     <div className="flex gap-2">
                         {tabs.map(tab => (
@@ -65,6 +50,20 @@ export default function AllContacts() {
                             </button>
                         ))}
                     </div>
+                    <button
+                        onClick={async () => {
+                            try {
+                                const { data } = await supabase.from('contacts').select('*').order('name');
+                                setContacts(data || []);
+                            } catch (err) {
+                                console.error(err);
+                            }
+                        }}
+                        className="px-4 py-1.5 bg-blue-600 text-white rounded text-[12px] font-bold shadow-sm hover:bg-blue-700 transition-colors flex items-center gap-2"
+                    >
+                        <RefreshCw size={14} />
+                        Fetch Real Contacts
+                    </button>
                 </div>
 
                 {/* Table Header */}
@@ -78,7 +77,7 @@ export default function AllContacts() {
 
                 {/* Rows Space */}
                 <div className="space-y-1 relative pt-2">
-                    {displayContacts.map((contact) => (
+                    {contacts.map((contact) => (
                         <div key={contact.id} className="group relative">
                             {/* Hover floating effect container */}
                             <div className="grid grid-cols-12 gap-4 px-4 py-3 items-center bg-white rounded border border-transparent transition-colors hover:bg-slate-50">
@@ -98,7 +97,14 @@ export default function AllContacts() {
 
                                 <div className="col-span-3 flex flex-col justify-center min-w-0">
                                     <span className="text-[12px] font-bold text-slate-800 truncate">{contact.organization}</span>
-                                    <span className="text-[11px] font-mono text-slate-500 truncate">{contact.title || 'Unknown Role'}</span>
+                                    <div className="flex flex-col">
+                                        <span className="text-[11px] font-mono text-slate-500 truncate">{contact.title || 'Unknown Role'}</span>
+                                        {contact.experience && contact.experience[0]?.dateRange && (
+                                            <span className="text-[9px] font-mono text-blue-600 font-bold uppercase tracking-tight mt-0.5">
+                                                Tenure: {contact.experience[0].dateRange.split('·')[1]?.trim() || contact.experience[0].dateRange}
+                                            </span>
+                                        )}
+                                    </div>
                                 </div>
 
                                 <div className="col-span-2 flex items-center">
@@ -206,11 +212,80 @@ export default function AllContacts() {
                                 </button>
                             </div>
                             <div className="p-2">
-                                <button onClick={() => setSelectedMoreContact(null)} className="w-full flex items-center gap-3 px-4 py-2.5 hover:bg-slate-50 rounded text-left transition-colors">
+                                <button
+                                    onClick={() => {
+                                        setSelectedProfileContact(selectedMoreContact);
+                                        setSelectedMoreContact(null);
+                                    }}
+                                    className="w-full flex items-center gap-3 px-4 py-2.5 hover:bg-slate-50 rounded text-left transition-colors"
+                                >
                                     <ExternalLink size={16} className="text-slate-400" />
-                                    <span className="text-[13px] font-semibold text-slate-700">View LinkedIn Profile</span>
+                                    <span className="text-[13px] font-semibold text-slate-700">View Scraped profile</span>
                                 </button>
-                                <button onClick={() => setSelectedMoreContact(null)} className="w-full flex items-center gap-3 px-4 py-2.5 hover:bg-slate-50 rounded text-left transition-colors">
+                                <button onClick={() => {
+                                    if (selectedMoreContact?.linkedin_url) {
+                                        window.open(selectedMoreContact.linkedin_url, '_blank');
+                                    }
+                                    setSelectedMoreContact(null);
+                                }} className="w-full flex items-center gap-3 px-4 py-2.5 hover:bg-slate-50 rounded text-left transition-colors">
+                                    <ExternalLink size={16} className="text-slate-400" />
+                                    <span className="text-[13px] font-semibold text-slate-700">Open LinkedIn</span>
+                                </button>
+                                <button
+                                    onClick={async () => {
+                                        if (!selectedMoreContact?.linkedin_url) {
+                                            alert("No LinkedIn URL found for this contact.");
+                                            return;
+                                        }
+                                        try {
+                                            // Opt for a basic loading alert or toast in a real app
+                                            console.log("Starting agentic sync...");
+                                            const btn = document.getElementById(`sync-btn-${selectedMoreContact.id}`);
+                                            if (btn) btn.innerHTML = '<span class="text-[13px] font-semibold text-slate-700">Syncing...</span>';
+
+                                            const res = await fetch("/api/scrape", {
+                                                method: "POST",
+                                                headers: {
+                                                    "Content-Type": "application/json",
+                                                    "X-API-Key": "dev-key"
+                                                },
+                                                body: JSON.stringify({
+                                                    linkedin_url: selectedMoreContact.linkedin_url,
+                                                    contact_name: selectedMoreContact.name,
+                                                    organization: selectedMoreContact.organization
+                                                })
+                                            });
+                                            const data = await res.json();
+                                            console.log("Scrape successful:", data);
+
+                                            // Update the contact in the local state array
+                                            if (data.success) {
+                                                setContacts(prev => prev.map(c =>
+                                                    c.id === selectedMoreContact.id
+                                                        ? {
+                                                            ...c,
+                                                            title: data.current_title || c.title,
+                                                            organization: data.current_organization || c.organization,
+                                                            status: data.still_at_organization ? 'active' : 'unknown',
+                                                            needs_human_review: !data.still_at_organization,
+                                                            experience: data.experience,
+                                                            education: data.education,
+                                                            skills: data.skills
+                                                        }
+                                                        : c
+                                                ));
+                                            }
+
+                                            setSelectedMoreContact(null);
+                                            if (btn) btn.innerHTML = '<span class="text-[13px] font-semibold text-slate-700">Force Agentic Sync</span>';
+                                        } catch (err) {
+                                            console.error(err);
+                                            alert("Scrape failed. Check console.");
+                                        }
+                                    }}
+                                    id={`sync-btn-${selectedMoreContact.id}`}
+                                    className="w-full flex items-center gap-3 px-4 py-2.5 hover:bg-slate-50 rounded text-left transition-colors"
+                                >
                                     <RefreshCw size={16} className="text-slate-400" />
                                     <span className="text-[13px] font-semibold text-slate-700">Force Agentic Sync</span>
                                 </button>
@@ -229,6 +304,145 @@ export default function AllContacts() {
                     </div>
                 )
             }
-        </div >
+
+            {/* Profile Detail Modal */}
+            {selectedProfileContact && (
+                <div className="fixed inset-0 z-50 flex items-center justify-center bg-slate-900/40 backdrop-blur-sm p-4">
+                    <div className="bg-white rounded-lg shadow-xl border border-slate-200 w-full max-w-4xl max-h-[90vh] overflow-hidden animate-in fade-in zoom-in-95 duration-200 flex flex-col">
+                        <div className="px-6 py-4 border-b border-slate-100 flex items-center justify-between bg-white sticky top-0 z-10">
+                            <div className="flex items-center gap-4">
+                                <div className="w-12 h-12 rounded-lg bg-blue-600 flex items-center justify-center text-white font-bold border border-blue-700 text-[18px] shadow-sm">
+                                    {selectedProfileContact?.name?.split(' ').map((n: string) => n[0]).join('')}
+                                </div>
+                                <div>
+                                    <h3 className="text-[18px] font-bold text-slate-900 leading-tight">{selectedProfileContact?.name}</h3>
+                                    <p className="text-[12px] font-mono text-slate-500 font-semibold">{selectedProfileContact?.organization} — {selectedProfileContact?.title}</p>
+                                </div>
+                            </div>
+                            <button
+                                onClick={() => setSelectedProfileContact(null)}
+                                className="text-slate-400 hover:text-slate-700 transition-colors p-2 hover:bg-slate-100 rounded-full"
+                            >
+                                <X size={20} />
+                            </button>
+                        </div>
+
+                        <div className="flex-1 overflow-y-auto p-6 bg-slate-50/30">
+                            <div className="grid grid-cols-12 gap-8">
+
+                                {/* Left Column: Experience */}
+                                <div className="col-span-8 space-y-6">
+                                    <div className="bg-white border border-slate-200 rounded-lg overflow-hidden shadow-sm">
+                                        <div className="px-4 py-3 bg-slate-50 border-b border-slate-200 flex items-center justify-between">
+                                            <h4 className="text-[11px] font-mono font-bold text-slate-500 uppercase tracking-widest">Experience History</h4>
+                                            <span className="px-2 py-0.5 bg-blue-50 text-blue-700 text-[10px] font-bold rounded border border-blue-100">AGENT VERIFIED</span>
+                                        </div>
+                                        <div className="divide-y divide-slate-100">
+                                            {selectedProfileContact.experience && selectedProfileContact.experience.length > 0 ? (
+                                                selectedProfileContact.experience.map((exp, idx) => (
+                                                    <div key={idx} className="p-4 hover:bg-slate-50/50 transition-colors">
+                                                        <div className="flex justify-between items-start mb-1">
+                                                            <h5 className="text-[13px] font-bold text-slate-900">{exp.title}</h5>
+                                                            {exp.isCurrent && (
+                                                                <span className="px-2 py-0.5 bg-green-50 text-green-700 text-[10px] font-bold rounded border border-green-100">CURRENT</span>
+                                                            )}
+                                                        </div>
+                                                        <p className="text-[12px] text-slate-600 mb-1">{exp.company}</p>
+                                                        <p className="text-[11px] font-mono text-slate-400 mb-3">{exp.dateRange}</p>
+                                                        {exp.description && (
+                                                            <div className="bg-slate-50 rounded p-3 text-[11px] text-slate-500 leading-relaxed border border-slate-100">
+                                                                {exp.description.split('\b').map((line, i) => (
+                                                                    <div key={i} className="mb-1 last:mb-0">{line}</div>
+                                                                ))}
+                                                            </div>
+                                                        )}
+                                                    </div>
+                                                ))
+                                            ) : (
+                                                <div className="p-8 text-center text-slate-400 text-[13px]">
+                                                    No experience data synced yet. Run agent sync to fetch history.
+                                                </div>
+                                            )}
+                                        </div>
+                                    </div>
+
+                                    {/* Education section */}
+                                    <div className="bg-white border border-slate-200 rounded-lg overflow-hidden shadow-sm">
+                                        <div className="px-4 py-3 bg-slate-50 border-b border-slate-200">
+                                            <h4 className="text-[11px] font-mono font-bold text-slate-500 uppercase tracking-widest">Education</h4>
+                                        </div>
+                                        <div className="divide-y divide-slate-100">
+                                            {selectedProfileContact.education && selectedProfileContact.education.length > 0 ? (
+                                                selectedProfileContact.education.map((edu, idx) => (
+                                                    <div key={idx} className="p-4">
+                                                        <h5 className="text-[13px] font-bold text-slate-900">{edu.institution}</h5>
+                                                        <p className="text-[12px] text-slate-600">{edu.degree}</p>
+                                                        <p className="text-[11px] font-mono text-slate-400">{edu.dateRange}</p>
+                                                    </div>
+                                                ))
+                                            ) : (
+                                                <div className="p-6 text-center text-slate-400 text-[13px]">
+                                                    No education data found.
+                                                </div>
+                                            )}
+                                        </div>
+                                    </div>
+                                </div>
+
+                                {/* Right Column: Meta/Skills */}
+                                <div className="col-span-4 space-y-6">
+                                    <div className="bg-white border border-slate-200 rounded-lg overflow-hidden shadow-sm p-4">
+                                        <h4 className="text-[11px] font-mono font-bold text-slate-500 uppercase tracking-widest mb-4">Skills</h4>
+                                        <div className="flex flex-wrap gap-2">
+                                            {selectedProfileContact.skills && selectedProfileContact.skills.length > 0 ? (
+                                                selectedProfileContact.skills.map((skill, idx) => (
+                                                    <span key={idx} className="px-2 py-1 bg-slate-50 text-slate-600 text-[11px] font-semibold rounded border border-slate-200">
+                                                        {skill}
+                                                    </span>
+                                                ))
+                                            ) : (
+                                                <p className="text-slate-400 text-[12px]">No skills found.</p>
+                                            )}
+                                        </div>
+                                    </div>
+
+                                    <div className="bg-blue-600 rounded-lg shadow-md p-5 text-white">
+                                        <h4 className="text-[10px] font-mono font-bold text-blue-100 uppercase tracking-widest mb-3 italic">Autonomous Insights</h4>
+                                        <p className="text-[13px] font-medium leading-relaxed opacity-95">
+                                            {selectedProfileContact.status === 'active'
+                                                ? "Contact is verified active. Tenure analysis shows stable progression. High relevance for current campaign."
+                                                : "Contact status is unknown. Last scraped role may have shifted. Suggest manual oversight before outreach."
+                                            }
+                                        </p>
+                                        <div className="mt-4 pt-4 border-t border-blue-500/50 flex items-center justify-between">
+                                            <span className="text-[10px] uppercase font-bold text-blue-200">Confidence Score</span>
+                                            <span className="text-[16px] font-bold">{selectedProfileContact.status === 'active' ? '98%' : '45%'}</span>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+
+                        <div className="px-6 py-4 border-t border-slate-100 bg-white flex justify-end gap-3">
+                            <button
+                                onClick={() => setSelectedProfileContact(null)}
+                                className="px-5 py-2 bg-white border border-slate-200 text-slate-700 rounded text-[13px] font-bold hover:bg-slate-50 shadow-sm transition-colors"
+                            >
+                                Close
+                            </button>
+                            <button
+                                onClick={() => {
+                                    if (selectedProfileContact.linkedin_url) window.open(selectedProfileContact.linkedin_url, '_blank');
+                                }}
+                                className="px-5 py-2 bg-blue-600 text-white rounded text-[13px] font-bold hover:bg-blue-700 shadow-sm transition-colors flex items-center gap-2"
+                            >
+                                <ExternalLink size={14} />
+                                Verify on LinkedIn
+                            </button>
+                        </div>
+                    </div>
+                </div>
+            )}
+        </div>
     );
 }
