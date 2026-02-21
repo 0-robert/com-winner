@@ -12,7 +12,12 @@ export default defineConfig({
         target: 'http://localhost:8001',
         changeOrigin: true,
         rewrite: (path) => path.replace(/^\/api\/scrape/, '/scrape'),
-      }
+      },
+      '/api/langfuse-stats': {
+        target: 'http://localhost:8001',
+        changeOrigin: true,
+        rewrite: (path) => path.replace(/^\/api\/langfuse-stats/, '/langfuse-stats'),
+      },
     }
   }
 })
