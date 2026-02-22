@@ -82,10 +82,10 @@ export default function Dashboard() {
     const activePercent = total > 0 ? Math.round((active / total) * 100) : 0;
 
     const statusGroups = [
-        { label: 'Active', count: active, color: '#10b981', bg: '#ecfdf5', border: '#a7f3d0' },
-        { label: 'Inactive', count: inactive, color: '#ef4444', bg: '#fef2f2', border: '#fecaca' },
-        { label: 'Unknown', count: unknown, color: '#f59e0b', bg: '#fffbeb', border: '#fde68a' },
-        { label: 'Flagged', count: flagged, color: '#8b5cf6', bg: '#f5f3ff', border: '#ddd6fe' },
+        { label: 'Active', count: active, color: '#3DF577', bg: '#f9fafb', border: '#e5e7eb', countColor: '#0B0B0B', barColor: '#3DF577' },
+        { label: 'Inactive', count: inactive, color: '#6B7280', bg: '#f9fafb', border: '#e5e7eb', countColor: '#0B0B0B', barColor: '#e5e7eb' },
+        { label: 'Unknown', count: unknown, color: '#6B7280', bg: '#f9fafb', border: '#e5e7eb', countColor: '#0B0B0B', barColor: '#e5e7eb' },
+        { label: 'Flagged', count: flagged, color: '#0B0B0B', bg: '#ffffff', border: '#0B0B0B', countColor: '#0B0B0B', barColor: '#0B0B0B' },
     ];
 
     if (loading) {
@@ -109,39 +109,47 @@ export default function Dashboard() {
 
             {/* ── KPI Cards ── */}
             <div className="grid grid-cols-2 lg:grid-cols-4 gap-4 mb-6">
-                <div className="bg-white rounded border border-[#e5e7eb] p-5 shadow-sm">
-                    <div className="flex items-center justify-between mb-3">
-                        <span className="text-[11px] font-mono font-bold text-[#6B7280] uppercase tracking-widest">Total Contacts</span>
-                        <Users size={14} className="text-[#9ca3af]" />
+                <div className="bg-white rounded border border-[#e5e7eb] p-5 shadow-sm flex flex-col justify-between">
+                    <div>
+                        <div className="flex items-center justify-between mb-3">
+                            <span className="text-[11px] font-mono font-bold text-[#6B7280] uppercase tracking-widest">Total Contacts</span>
+                            <Users size={14} className="text-[#9ca3af]" />
+                        </div>
+                        <p className="text-[32px] font-bold text-[#0B0B0B] tracking-tight leading-none mb-4">{fmt(total)}</p>
                     </div>
-                    <p className="text-[32px] font-bold text-[#0B0B0B] tracking-tight leading-none">{fmt(total)}</p>
                 </div>
 
-                <div className="bg-white rounded border border-[#e5e7eb] p-5 shadow-sm">
-                    <div className="flex items-center justify-between mb-3">
-                        <span className="text-[11px] font-mono font-bold text-[#6B7280] uppercase tracking-widest">Active Rate</span>
-                        <CheckCircle size={14} className="text-[#10b981]" />
+                <div className="bg-white rounded border border-[#e5e7eb] p-5 shadow-sm flex flex-col justify-between">
+                    <div>
+                        <div className="flex items-center justify-between mb-3">
+                            <span className="text-[11px] font-mono font-bold text-[#6B7280] uppercase tracking-widest">Active Rate</span>
+                            <CheckCircle size={14} className="text-[#3DF577]" />
+                        </div>
+                        <p className="text-[32px] font-bold text-[#0B0B0B] tracking-tight leading-none mb-4">{activePercent}<span className="text-[18px] text-[#0B0B0B] font-mono">%</span></p>
                     </div>
-                    <p className="text-[32px] font-bold text-[#0B0B0B] tracking-tight leading-none">{activePercent}<span className="text-[18px] text-[#6B7280]">%</span></p>
-                    <p className="text-[11px] font-mono text-[#9ca3af] mt-1">{fmt(active)} of {fmt(total)} verified active</p>
+                    <p className="text-[11px] font-mono text-[#6B7280]">{fmt(active)} of {fmt(total)} verified active</p>
                 </div>
 
-                <div className="bg-white rounded border border-[#e5e7eb] p-5 shadow-sm">
-                    <div className="flex items-center justify-between mb-3">
-                        <span className="text-[11px] font-mono font-bold text-[#6B7280] uppercase tracking-widest">Needs Review</span>
-                        <AlertCircle size={14} className="text-[#8b5cf6]" />
+                <div className="bg-white rounded border border-[#e5e7eb] p-5 shadow-sm flex flex-col justify-between">
+                    <div>
+                        <div className="flex items-center justify-between mb-3">
+                            <span className="text-[11px] font-mono font-bold text-[#6B7280] uppercase tracking-widest">Needs Review</span>
+                            <AlertCircle size={14} className="text-[#8b5cf6]" />
+                        </div>
+                        <p className="text-[32px] font-bold text-[#0B0B0B] tracking-tight leading-none mb-4">{fmt(flagged)}</p>
                     </div>
-                    <p className="text-[32px] font-bold text-[#0B0B0B] tracking-tight leading-none">{fmt(flagged)}</p>
-                    <p className="text-[11px] font-mono text-[#9ca3af] mt-1">flagged for human check</p>
+                    <p className="text-[11px] font-mono text-[#6B7280]">flagged for human check</p>
                 </div>
 
-                <div className="bg-white rounded border border-[#e5e7eb] p-5 shadow-sm">
-                    <div className="flex items-center justify-between mb-3">
-                        <span className="text-[11px] font-mono font-bold text-[#6B7280] uppercase tracking-widest">Batch Runs</span>
-                        <TrendingUp size={14} className="text-[#9ca3af]" />
+                <div className="bg-white rounded border border-[#e5e7eb] p-5 shadow-sm flex flex-col justify-between">
+                    <div>
+                        <div className="flex items-center justify-between mb-3">
+                            <span className="text-[11px] font-mono font-bold text-[#6B7280] uppercase tracking-widest">Batch Runs</span>
+                            <TrendingUp size={14} className="text-[#9ca3af]" />
+                        </div>
+                        <p className="text-[32px] font-bold text-[#0B0B0B] tracking-tight leading-none mb-4">{receipts.length}</p>
                     </div>
-                    <p className="text-[32px] font-bold text-[#0B0B0B] tracking-tight leading-none">{receipts.length}</p>
-                    <p className="text-[11px] font-mono text-[#9ca3af] mt-1">total agent runs</p>
+                    <p className="text-[11px] font-mono text-[#6B7280]">total agent runs</p>
                 </div>
             </div>
 
@@ -150,10 +158,12 @@ export default function Dashboard() {
                 <h2 className="text-[14px] font-bold text-[#0B0B0B] tracking-tight mb-4">Contact Status Breakdown</h2>
                 <div className="grid grid-cols-2 lg:grid-cols-4 gap-3 mb-4">
                     {statusGroups.map(g => (
-                        <div key={g.label} className="rounded p-4 border" style={{ background: g.bg, borderColor: g.border }}>
-                            <p className="text-[11px] font-mono font-bold uppercase tracking-widest mb-1" style={{ color: g.color }}>{g.label}</p>
-                            <p className="text-[24px] font-bold text-[#0B0B0B] leading-none">{g.count}</p>
-                            <p className="text-[10px] font-mono text-[#9ca3af] mt-1">
+                        <div key={g.label} className="rounded p-4 border flex flex-col justify-between" style={{ background: g.bg, borderColor: g.border }}>
+                            <div>
+                                <p className="text-[11px] font-mono font-bold uppercase tracking-widest mb-1" style={{ color: g.color }}>{g.label}</p>
+                                <p className="text-[24px] font-bold leading-none mb-4" style={{ color: g.countColor }}>{g.count}</p>
+                            </div>
+                            <p className="text-[10px] font-mono text-[#9ca3af]">
                                 {total > 0 ? Math.round((g.count / total) * 100) : 0}% of total
                             </p>
                         </div>
@@ -167,7 +177,7 @@ export default function Dashboard() {
                                 <div
                                     key={g.label}
                                     className="h-full transition-all"
-                                    style={{ width: `${(g.count / total) * 100}%`, background: g.color }}
+                                    style={{ width: `${(g.count / total) * 100}%`, background: g.barColor }}
                                     title={`${g.label}: ${g.count}`}
                                 />
                             )
@@ -182,36 +192,53 @@ export default function Dashboard() {
                 <div className="grid grid-cols-1 sm:grid-cols-3 gap-4 mb-4">
                     <div>
                         <label className="block text-[11px] font-mono font-bold text-[#6B7280] uppercase tracking-widest mb-1.5">Batch Limit</label>
-                        <input
-                            type="number"
-                            min={1}
-                            max={500}
-                            value={limit}
-                            onChange={e => setLimit(Number(e.target.value))}
-                            className="w-full border border-[#e5e7eb] rounded px-3 py-2 text-[13px] font-mono text-[#0B0B0B] focus:outline-none focus:border-[#0B0B0B]"
-                        />
+                        <div className="relative">
+                            <input
+                                type="number"
+                                min={1}
+                                max={500}
+                                value={limit}
+                                onChange={e => setLimit(Number(e.target.value))}
+                                className="w-full border border-[#e5e7eb] rounded pl-3 pr-8 py-2 text-[13px] font-mono text-[#0B0B0B] focus:outline-none focus:border-[#0B0B0B] appearance-none"
+                            />
+                            <div className="absolute right-2 top-0 bottom-0 flex flex-col justify-center pointer-events-none text-[#9ca3af]">
+                                <svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><polyline points="18 15 12 9 6 15"></polyline></svg>
+                                <svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><polyline points="6 9 12 15 18 9"></polyline></svg>
+                            </div>
+                        </div>
                     </div>
                     <div>
                         <label className="block text-[11px] font-mono font-bold text-[#6B7280] uppercase tracking-widest mb-1.5">Concurrency</label>
-                        <input
-                            type="number"
-                            min={1}
-                            max={20}
-                            value={concurrency}
-                            onChange={e => setConcurrency(Number(e.target.value))}
-                            className="w-full border border-[#e5e7eb] rounded px-3 py-2 text-[13px] font-mono text-[#0B0B0B] focus:outline-none focus:border-[#0B0B0B]"
-                        />
+                        <div className="relative">
+                            <input
+                                type="number"
+                                min={1}
+                                max={20}
+                                value={concurrency}
+                                onChange={e => setConcurrency(Number(e.target.value))}
+                                className="w-full border border-[#e5e7eb] rounded pl-3 pr-8 py-2 text-[13px] font-mono text-[#0B0B0B] focus:outline-none focus:border-[#0B0B0B] appearance-none"
+                            />
+                            <div className="absolute right-2 top-0 bottom-0 flex flex-col justify-center pointer-events-none text-[#9ca3af]">
+                                <svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><polyline points="18 15 12 9 6 15"></polyline></svg>
+                                <svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><polyline points="6 9 12 15 18 9"></polyline></svg>
+                            </div>
+                        </div>
                     </div>
                     <div>
                         <label className="block text-[11px] font-mono font-bold text-[#6B7280] uppercase tracking-widest mb-1.5">Tier</label>
-                        <select
-                            value={tier}
-                            onChange={e => setTier(e.target.value as 'free' | 'paid')}
-                            className="w-full border border-[#e5e7eb] rounded px-3 py-2 text-[13px] font-mono text-[#0B0B0B] focus:outline-none focus:border-[#0B0B0B] bg-white"
-                        >
-                            <option value="free">Free (scrape only)</option>
-                            <option value="paid">Paid (Claude AI)</option>
-                        </select>
+                        <div className="relative border border-[#e5e7eb] rounded bg-[#f9fafb]">
+                            <select
+                                value={tier}
+                                onChange={e => setTier(e.target.value as 'free' | 'paid')}
+                                className="w-full bg-transparent px-3 py-2 text-[13px] font-mono text-[#0B0B0B] focus:outline-none appearance-none"
+                            >
+                                <option value="free">Free (scrape only)</option>
+                                <option value="paid">Paid (Claude AI)</option>
+                            </select>
+                            <div className="absolute right-3 top-0 bottom-0 flex items-center pointer-events-none text-[#0B0B0B]">
+                                <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M7 15l5 5 5-5" /><path d="M7 9l5-5 5 5" /></svg>
+                            </div>
+                        </div>
                     </div>
                 </div>
                 <div className="flex flex-col gap-3">
@@ -230,18 +257,18 @@ export default function Dashboard() {
                     </div>
 
                     {runStatus === 'started' && runMeta && (
-                        <div className="flex items-start gap-3 bg-[#ecfdf5] border border-[#a7f3d0] rounded px-4 py-3">
-                            <span className="mt-0.5 w-2 h-2 rounded-full bg-[#10b981] animate-pulse flex-shrink-0" />
+                        <div className="flex items-start gap-3 bg-[#f9fafb] border border-[#e5e7eb] rounded px-4 py-3">
+                            <span className="mt-0.5 w-2 h-2 rounded-full bg-[#3DF577] animate-pulse flex-shrink-0" />
                             <div>
-                                <p className="text-[12px] font-mono font-bold text-[#065f46]">
+                                <p className="text-[12px] font-mono font-bold text-[#0B0B0B]">
                                     Agent started — check Value Receipt for results.
                                 </p>
-                                <p className="text-[11px] font-mono text-[#047857] mt-0.5">
+                                <p className="text-[11px] font-mono text-[#6B7280] mt-0.5">
                                     batch_id: <span className="select-all">{runMeta.batch_id}</span>
                                     &nbsp;·&nbsp;tier: {runMeta.tier}
                                     &nbsp;·&nbsp;up to {runMeta.limit} contacts
                                 </p>
-                                <p className="text-[10px] font-mono text-[#6ee7b7] mt-1">
+                                <p className="text-[10px] font-mono text-[#9ca3af] mt-1">
                                     Running in background — watch your server logs for per-agent progress.
                                 </p>
                             </div>
@@ -270,20 +297,20 @@ export default function Dashboard() {
                                     ))}
                                 </tr>
                             </thead>
-                            <tbody>
+                            <tbody className="divide-y divide-[#e5e7eb]">
                                 {receipts.map(r => (
-                                    <tr key={r.id} className="border-b border-[#f3f4f6] hover:bg-[#f9fafb]">
-                                        <td className="py-3 pr-4 font-mono text-[#6B7280]">
+                                    <tr key={r.id} className="border-b border-transparent hover:bg-[#f9fafb] transition-colors group">
+                                        <td className="py-4 pr-4 font-mono text-[#6B7280]">
                                             {new Date(r.run_at).toLocaleString('en-GB', { day: '2-digit', month: 'short', hour: '2-digit', minute: '2-digit' })}
                                         </td>
-                                        <td className="py-3 pr-4 font-bold text-[#0B0B0B]">{r.contacts_processed}</td>
-                                        <td className="py-3 pr-4 text-[#10b981] font-bold">{r.contacts_verified_active}</td>
-                                        <td className="py-3 pr-4 text-[#ef4444] font-bold">{r.contacts_marked_inactive}</td>
-                                        <td className="py-3 pr-4 text-[#8b5cf6] font-bold">{r.replacements_found}</td>
-                                        <td className="py-3 pr-4 font-mono text-[#6B7280]">${r.total_api_cost_usd?.toFixed(4)}</td>
-                                        <td className="py-3 pr-4 font-mono text-[#0B0B0B]">${fmt(r.total_value_generated_usd, 2)}</td>
-                                        <td className="py-3 pr-4">
-                                            <span className="bg-[#ecfdf5] text-[#10b981] border border-[#a7f3d0] text-[10px] font-mono font-bold px-2 py-0.5 rounded">
+                                        <td className="py-4 pr-4 font-bold text-[#0B0B0B]">{r.contacts_processed}</td>
+                                        <td className="py-4 pr-4 font-bold" style={{ color: '#3DF577' }}>{r.contacts_verified_active}</td>
+                                        <td className="py-4 pr-4 text-[#6B7280] font-bold">{r.contacts_marked_inactive}</td>
+                                        <td className="py-4 pr-4 text-[#0B0B0B] font-bold">{r.replacements_found}</td>
+                                        <td className="py-4 pr-4 font-mono text-[#6B7280]">${r.total_api_cost_usd?.toFixed(4)}</td>
+                                        <td className="py-4 pr-4 font-mono text-[#0B0B0B]">${fmt(r.total_value_generated_usd, 2)}</td>
+                                        <td className="py-4 pr-4">
+                                            <span className="bg-white border border-[#3DF577] text-[#3DF577] text-[10px] font-mono font-bold px-2 py-0.5 rounded shadow-sm">
                                                 +{fmt(r.net_roi_percentage)}%
                                             </span>
                                         </td>
