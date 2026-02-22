@@ -21,47 +21,52 @@ interface LangfuseStats {
     langfuse_dashboard_url: string;
 }
 
-// Static receipt data (batch-level metrics)
-const r = {
-    contacts_processed: 1250,
-    replacements_found: 42,
-    flagged_for_review: 18,
-    total_value_generated_usd: 105.00,
-    net_roi_percentage: 7100,
-    simulated_invoice_usd: 230.00,
-};
+interface BatchReceipt {
+    contacts_processed: number;
+    replacements_found: number;
+    flagged_for_review: number;
+    total_value_generated_usd: number;
+    net_roi_percentage: number;
+    simulated_invoice_usd: number;
+    run_at: string;
+}
 
 export default function ValueReceipt() {
     const [stats, setStats] = useState<LangfuseStats | null>(null);
+    const [receipt, setReceipt] = useState<BatchReceipt | null>(null);
     const [loading, setLoading] = useState(true);
     const [error, setError] = useState<string | null>(null);
 
     const fetchStats = () => {
         setLoading(true);
         setError(null);
-        fetch('/api/langfuse-stats', { headers: { 'X-API-Key': 'dev-key' } })
-            .then((res) => {
-                if (!res.ok) throw new Error(`HTTP ${res.status}`);
-                return res.json();
-            })
-            .then((data: LangfuseStats & { not_configured?: boolean }) => {
-                // Stub returns not_configured=true until Langfuse is wired
-                if (data.not_configured) {
-                    setStats(null);
-                } else {
-                    setStats(data);
-                }
-                setLoading(false);
-            })
-            .catch((err) => {
-                setError(err.message);
-                setLoading(false);
-            });
+        Promise.all([
+            fetch('/api/langfuse-stats', { headers: { 'X-API-Key': 'dev-key' } })
+                .then(res => { if (!res.ok) throw new Error(`HTTP ${res.status}`); return res.json(); })
+                .catch(() => null),
+            fetch('/api/batch-receipts?limit=1', { headers: { 'X-API-Key': 'dev-key' } })
+                .then(res => { if (!res.ok) throw new Error(`HTTP ${res.status}`); return res.json(); })
+                .catch(() => []),
+        ]).then(([langfuse, receipts]) => {
+            if (langfuse && !langfuse.not_configured) setStats(langfuse);
+            if (Array.isArray(receipts) && receipts.length > 0) setReceipt(receipts[0]);
+        }).catch((err) => {
+            setError(err.message);
+        }).finally(() => setLoading(false));
     };
 
     useEffect(() => { fetchStats(); }, []);
 
-    const apiCost = stats?.total_cost_usd ?? r.total_value_generated_usd;
+    const r = receipt ?? {
+        contacts_processed: 0,
+        replacements_found: 0,
+        flagged_for_review: 0,
+        total_value_generated_usd: 0,
+        net_roi_percentage: 0,
+        simulated_invoice_usd: 0,
+    };
+
+    const apiCost = stats?.total_cost_usd ?? 0;
 
     return (
         <div>
@@ -73,6 +78,12 @@ export default function ValueReceipt() {
                     <span className="w-1.5 h-1.5 bg-[#3DF577] rounded-full inline-block"></span> <span>Outcome-based ROI</span>
                 </p>
             </div>
+
+            {!loading && !receipt && (
+                <div className="mb-4 bg-[#fffbeb] border border-[#fde68a] rounded px-4 py-3 text-[12px] font-mono text-[#92400e]">
+                    No batch runs yet — go to Settings to trigger your first run. Showing zero values.
+                </div>
+            )}
 
             <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mb-6">
                 <div className="col-span-1 md:col-span-3 overflow-hidden rounded bg-white p-6 shadow-sm border border-[#e5e7eb]">
@@ -91,7 +102,7 @@ export default function ValueReceipt() {
                             <div className="flex-1 bg-[#f9fafb] border border-[#e5e7eb] p-4 rounded flex flex-col justify-center min-w-[160px]">
                                 <p className="text-[#6B7280] font-mono text-[10px] font-bold uppercase tracking-widest mb-1 flex items-center gap-1.5"><Zap size={14} className="text-[#0B0B0B]" /> API Cost</p>
                                 <p className="text-xl font-bold text-[#0B0B0B] tabular-nums">
-                                    {stats ? `$${stats.total_cost_usd.toFixed(4)}` : loading ? <span className="text-[#9ca3af] text-base">Loading…</span> : `$${apiCost.toFixed(4)}`}
+                                    {loading ? <span className="text-[#9ca3af] text-base">Loading…</span> : `$${apiCost.toFixed(4)}`}
                                 </p>
                             </div>
                         </div>
