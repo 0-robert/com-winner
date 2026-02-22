@@ -6,7 +6,7 @@ Asks contacts to confirm or update the information we have on file.
 import asyncio
 import logging
 import os
-from typing import TYPE_CHECKING
+from typing import TYPE_CHECKING, Optional
 
 import resend
 
@@ -83,7 +83,7 @@ class EmailSenderAdapter(IEmailSenderGateway):
 
     @staticmethod
     def _build_html(contact: "Contact", first_name: str) -> str:
-        def _row(label: str, value: str | None) -> str:
+        def _row(label: str, value: Optional[str]) -> str:
             display = value if value else "<em>Not on file</em>"
             return (
                 f'<tr style="border-bottom:1px solid #eee;">'

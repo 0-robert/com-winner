@@ -14,7 +14,9 @@ import {
   Loader2,
   ChevronDown,
   ChevronRight,
+  Wand2,
 } from "lucide-react";
+import AgentWorkbench from "./AgentWorkbench";
 
 // ── Freshness helpers ────────────────────────────────────────────────────────
 
@@ -164,6 +166,9 @@ export default function AllContacts() {
     total_sent: number;
     total_failed: number;
   } | null>(null);
+
+  // ── Agent workbench state ──────────────────────────────────────────────
+  const [agentContact, setAgentContact] = useState<Contact | null>(null);
 
   // ── Edit / Delete state ────────────────────────────────────────────────
   const [editContact, setEditContact] = useState<Contact | null>(null);
@@ -587,8 +592,15 @@ export default function AllContacts() {
                     )}
                   </div>
 
-                  {/* More */}
-                  <div className="col-span-1 flex items-center justify-end">
+                  {/* Actions */}
+                  <div className="col-span-1 flex items-center justify-end gap-0.5">
+                    <button
+                      onClick={() => setAgentContact(contact)}
+                      className="text-slate-400 hover:text-purple-600 transition-colors p-1 rounded hover:bg-purple-50"
+                      title="Run AI verification agent"
+                    >
+                      <Wand2 size={14} />
+                    </button>
                     <button
                       onClick={() => setSelectedMoreContact(contact)}
                       className="text-slate-400 hover:text-slate-800 transition-colors p-1 rounded hover:bg-slate-200"
@@ -1187,6 +1199,14 @@ export default function AllContacts() {
             </div>
           </div>
         </div>
+      )}
+
+      {/* ── Agent Workbench modal ───────────────────────────────────────── */}
+      {agentContact && (
+        <AgentWorkbench
+          contact={agentContact}
+          onClose={() => setAgentContact(null)}
+        />
       )}
     </div>
   );

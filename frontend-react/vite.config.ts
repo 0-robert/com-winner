@@ -28,6 +28,10 @@ export default defineConfig({
         changeOrigin: true,
         rewrite: (path) => path.replace(/^\/api\/contacts/, "/contacts"),
       },
+      "/api/agent": {
+        target: "http://localhost:8001",
+        changeOrigin: true,
+      },
     },
   },
 });
