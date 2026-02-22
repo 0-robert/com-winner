@@ -53,7 +53,7 @@ class BS4ScraperAdapter(IScraperGateway):
             logger.info(
                 f"[Tier1] No district website for {organization} — skipping"
             )
-            return ScraperResult(success=True, person_found=False)
+            return ScraperResult(success=False, error="No district website provided")
 
         try:
             async with httpx.AsyncClient(
@@ -65,8 +65,9 @@ class BS4ScraperAdapter(IScraperGateway):
                 staff_url = await self._guess_staff_url(client, district_website)
                 if not staff_url:
                     return ScraperResult(
-                        success=True,
+                        success=False,
                         person_found=False,
+                        error="Could not locate a staff directory page",
                     )
 
 

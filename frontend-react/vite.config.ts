@@ -14,6 +14,21 @@ export default defineConfig({
         changeOrigin: true,
         rewrite: (path) => path.replace(/^\/api/, ""),
       },
+      "/api/config-status": {
+        target: "http://localhost:8001",
+        changeOrigin: true,
+        rewrite: (path) => path.replace(/^\/api\/config-status/, "/config-status"),
+      },
+      "/api/batch-receipts": {
+        target: "http://localhost:8002",
+        changeOrigin: true,
+        rewrite: (path) => path.replace(/^\/api\/batch-receipts/, "/batch-receipts"),
+      },
+      "/api/batch": {
+        target: "http://localhost:8001",
+        changeOrigin: true,
+        rewrite: (path) => path.replace(/^\/api\/batch/, "/batch"),
+      },
     },
   },
 });
