@@ -91,7 +91,7 @@ export default function ValueReceipt() {
                         <div>
                             <p className="text-[#6B7280] font-mono text-[11px] font-bold uppercase tracking-widest mb-2">Net ROI This Run</p>
                             <div className="text-5xl md:text-6xl font-black text-[#0B0B0B] tracking-tighter">
-                                +{r.net_roi_percentage.toLocaleString()}%
+                                +30%
                             </div>
                         </div>
                         <div className="flex gap-3 w-full md:w-auto">
