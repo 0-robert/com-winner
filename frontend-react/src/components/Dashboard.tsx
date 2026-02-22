@@ -34,6 +34,7 @@ export default function Dashboard() {
     const [tier, setTier] = useState<'free' | 'paid'>('free');
     const [runStatus, setRunStatus] = useState<'idle' | 'starting' | 'started' | 'error'>('idle');
     const [runError, setRunError] = useState<string | null>(null);
+    const [runMeta, setRunMeta] = useState<{ batch_id: string; tier: string; limit: number } | null>(null);
 
     useEffect(() => {
         Promise.all([
@@ -48,6 +49,8 @@ export default function Dashboard() {
     async function triggerRun() {
         setRunStatus('starting');
         setRunError(null);
+        setRunMeta(null);
+        console.log('[Dashboard] Triggering batch run', { limit, concurrency, tier });
         try {
             const res = await fetch('/api/batch/run', {
                 method: 'POST',
@@ -56,10 +59,15 @@ export default function Dashboard() {
             });
             if (!res.ok) {
                 const body = await res.text();
+                console.error('[Dashboard] Batch run HTTP error', res.status, body);
                 throw new Error(body || `HTTP ${res.status}`);
             }
+            const data = await res.json();
+            console.log('[Dashboard] Batch run started:', data);
+            setRunMeta({ batch_id: data.batch_id, tier: data.tier, limit: data.limit });
             setRunStatus('started');
         } catch (err: any) {
+            console.error('[Dashboard] triggerRun error:', err);
             setRunStatus('error');
             setRunError(err.message || 'Failed to start batch run.');
         }
@@ -206,20 +214,38 @@ export default function Dashboard() {
                         </select>
                     </div>
                 </div>
-                <div className="flex items-center gap-4">
-                    <button
-                        onClick={triggerRun}
-                        disabled={runStatus === 'starting' || runStatus === 'started'}
-                        className="flex items-center gap-2 px-5 py-2.5 bg-[#3DF577] border border-transparent rounded text-[12px] font-mono font-bold text-[#0B0B0B] hover:bg-[#34d366] transition-colors shadow-sm uppercase tracking-widest disabled:opacity-50 disabled:cursor-not-allowed"
-                    >
-                        {runStatus === 'starting' ? <Loader2 size={14} className="animate-spin" /> : <Play size={14} />}
-                        {runStatus === 'starting' ? 'Starting…' : 'Run Agent'}
-                    </button>
-                    {runStatus === 'started' && (
-                        <span className="text-[11px] font-mono text-[#10b981] font-bold">Agent started — check Value Receipt for results.</span>
-                    )}
-                    {runStatus === 'error' && runError && (
-                        <span className="text-[11px] font-mono text-[#ef4444]">{runError}</span>
+                <div className="flex flex-col gap-3">
+                    <div className="flex items-center gap-4">
+                        <button
+                            onClick={triggerRun}
+                            disabled={runStatus === 'starting' || runStatus === 'started'}
+                            className="flex items-center gap-2 px-5 py-2.5 bg-[#3DF577] border border-transparent rounded text-[12px] font-mono font-bold text-[#0B0B0B] hover:bg-[#34d366] transition-colors shadow-sm uppercase tracking-widest disabled:opacity-50 disabled:cursor-not-allowed"
+                        >
+                            {runStatus === 'starting' ? <Loader2 size={14} className="animate-spin" /> : <Play size={14} />}
+                            {runStatus === 'starting' ? 'Starting…' : 'Run Agent'}
+                        </button>
+                        {runStatus === 'error' && runError && (
+                            <span className="text-[11px] font-mono text-[#ef4444]">{runError}</span>
+                        )}
+                    </div>
+
+                    {runStatus === 'started' && runMeta && (
+                        <div className="flex items-start gap-3 bg-[#ecfdf5] border border-[#a7f3d0] rounded px-4 py-3">
+                            <span className="mt-0.5 w-2 h-2 rounded-full bg-[#10b981] animate-pulse flex-shrink-0" />
+                            <div>
+                                <p className="text-[12px] font-mono font-bold text-[#065f46]">
+                                    Agent started — check Value Receipt for results.
+                                </p>
+                                <p className="text-[11px] font-mono text-[#047857] mt-0.5">
+                                    batch_id: <span className="select-all">{runMeta.batch_id}</span>
+                                    &nbsp;·&nbsp;tier: {runMeta.tier}
+                                    &nbsp;·&nbsp;up to {runMeta.limit} contacts
+                                </p>
+                                <p className="text-[10px] font-mono text-[#6ee7b7] mt-1">
+                                    Running in background — watch your server logs for per-agent progress.
+                                </p>
+                            </div>
+                        </div>
                     )}
                 </div>
             </div>
@@ -232,7 +258,7 @@ export default function Dashboard() {
                     <div className="flex flex-col items-center justify-center py-12 text-[#9ca3af]">
                         <Clock size={28} className="mb-3 opacity-40" />
                         <p className="text-[13px] font-medium text-[#6B7280]">No batch runs yet</p>
-                        <p className="text-[11px] font-mono mt-1">Use the Run Agent button below to trigger your first run</p>
+                        <p className="text-[11px] font-mono mt-1">Use the "Run Agent" button above to trigger your first run</p>
                     </div>
                 ) : (
                     <div className="overflow-x-auto">
