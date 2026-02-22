@@ -205,7 +205,7 @@ class VerifyContactUseCase:
             contact_id=contact.id,
             status=ContactStatus.UNKNOWN,
             economics=economics,
-            low_confidence_flag=True,
+            low_confidence_flag=False,
             evidence_urls=evidence_urls,
-            notes="All verification steps exhausted — requires human review",
+            notes="",
         )
