@@ -273,7 +273,7 @@ async def scrape_linkedin(req: ScrapeRequest, _: None = Depends(_auth)):
     """
     c = get_container()
 
-    result = await c.linkedin.scrape_profile(
+    result = await c.linkedin.verify_employment(
         linkedin_url=req.linkedin_url,
         contact_name=req.contact_name,
         organization=req.organization or "",
