@@ -8,29 +8,11 @@ export default defineConfig({
   server: {
     port: 5173,
     proxy: {
-      "/api/scrape": {
-        target: "http://localhost:8001",
+      // All /api/* requests → unified backend on :8000 (strips /api prefix)
+      "/api": {
+        target: "http://localhost:8000",
         changeOrigin: true,
-        rewrite: (path) => path.replace(/^\/api\/scrape/, "/scrape"),
-      },
-      "/api/email": {
-        target: "http://localhost:8001",
-        changeOrigin: true,
-      },
-      "/api/langfuse-stats": {
-        target: "http://localhost:8001",
-        changeOrigin: true,
-        rewrite: (path) =>
-          path.replace(/^\/api\/langfuse-stats/, "/langfuse-stats"),
-      },
-      "/api/contacts": {
-        target: "http://localhost:8002",
-        changeOrigin: true,
-        rewrite: (path) => path.replace(/^\/api\/contacts/, "/contacts"),
-      },
-      "/api/agent": {
-        target: "http://localhost:8001",
-        changeOrigin: true,
+        rewrite: (path) => path.replace(/^\/api/, ""),
       },
     },
   },

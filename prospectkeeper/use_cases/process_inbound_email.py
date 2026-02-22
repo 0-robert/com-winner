@@ -11,7 +11,6 @@ from dataclasses import dataclass
 from typing import Optional, List
 
 import anthropic
-from langfuse import get_client as get_langfuse_client
 
 from ..domain.entities.contact import Contact
 from ..domain.interfaces.i_data_repository import IDataRepository
@@ -172,34 +171,17 @@ class ProcessInboundEmailUseCase:
         )
 
         try:
-            with get_langfuse_client().start_as_current_generation(
-                name="parse_inbound_email",
+            response = self.client.messages.create(
                 model=HAIKU_MODEL,
-                input=prompt,
-                metadata={
-                    "contact_id": contact.id,
-                    "contact_email": contact.email,
-                },
-            ) as generation:
-                response = self.client.messages.create(
-                    model=HAIKU_MODEL,
-                    max_tokens=512,
-                    system=EMAIL_PARSE_SYSTEM_PROMPT,
-                    messages=[{"role": "user", "content": prompt}],
-                )
+                max_tokens=512,
+                system=EMAIL_PARSE_SYSTEM_PROMPT,
+                messages=[{"role": "user", "content": prompt}],
+            )
 
-                input_tokens = response.usage.input_tokens
-                output_tokens = response.usage.output_tokens
-                # Haiku pricing: $0.80/M input, $4.00/M output
-                cost_usd = (
-                    input_tokens * 0.80 + output_tokens * 4.00
-                ) / 1_000_000
-
-                generation.update(
-                    output=response.content[0].text,
-                    usage={"input": input_tokens, "output": output_tokens},
-                )
-
+            input_tokens = response.usage.input_tokens
+            output_tokens = response.usage.output_tokens
+            # Haiku pricing: $0.80/M input, $4.00/M output
+            cost_usd = (input_tokens * 0.80 + output_tokens * 4.00) / 1_000_000
             content = response.content[0].text
             return self._parse_claude_response(content, input_tokens, output_tokens, cost_usd)
 

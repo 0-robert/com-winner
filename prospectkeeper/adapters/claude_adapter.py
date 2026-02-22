@@ -13,7 +13,6 @@ import json
 import logging
 from typing import Optional
 import anthropic
-from langfuse import get_client as get_langfuse_client
 
 from ..domain.interfaces.i_ai_gateway import IAIGateway, AIResearchResult
 
@@ -66,28 +65,16 @@ class ClaudeAdapter(IAIGateway):
         prompt = self._build_prompt(contact_name, organization, title, context_text)
 
         try:
-            with get_langfuse_client().start_as_current_generation(
-                name="research_contact",
+            response = self.client.messages.create(
                 model=MODEL,
-                input=prompt,
-                metadata={"contact": contact_name, "organization": organization},
-            ) as generation:
-                response = self.client.messages.create(
-                    model=MODEL,
-                    max_tokens=1024,
-                    system=RESEARCH_SYSTEM_PROMPT,
-                    messages=[{"role": "user", "content": prompt}],
-                )
+                max_tokens=1024,
+                system=RESEARCH_SYSTEM_PROMPT,
+                messages=[{"role": "user", "content": prompt}],
+            )
 
-                input_tokens = response.usage.input_tokens
-                output_tokens = response.usage.output_tokens
-                cost_usd = (input_tokens * 3.0 + output_tokens * 15.0) / 1_000_000
-
-                generation.update(
-                    output=response.content[0].text,
-                    usage={"input": input_tokens, "output": output_tokens},
-                )
-
+            input_tokens = response.usage.input_tokens
+            output_tokens = response.usage.output_tokens
+            cost_usd = (input_tokens * 3.0 + output_tokens * 15.0) / 1_000_000
             content = response.content[0].text
             return self._parse_response(
                 content, input_tokens, output_tokens, cost_usd
