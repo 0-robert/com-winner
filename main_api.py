@@ -15,6 +15,7 @@ Interactive docs:
 """
 
 import asyncio
+import base64
 import hashlib
 import json
 import logging
@@ -23,6 +24,11 @@ import uuid
 from datetime import datetime
 from typing import List, Optional
 
+import httpx
+from dotenv import load_dotenv
+
+load_dotenv()
+
 from fastapi import Depends, FastAPI, Header, HTTPException, status
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import StreamingResponse
@@ -30,6 +36,13 @@ from pydantic import BaseModel
 
 logging.basicConfig(level=logging.INFO, format="%(levelname)s  %(name)s: %(message)s")
 logger = logging.getLogger(__name__)
+
+# ── Langfuse config ────────────────────────────────────────────────────────────
+_LANGFUSE_PUBLIC_KEY = os.getenv("LANGFUSE_PUBLIC_KEY", "")
+_LANGFUSE_SECRET_KEY = os.getenv("LANGFUSE_SECRET_KEY", "")
+_LANGFUSE_BASE_URL = os.getenv("LANGFUSE_BASE_URL", "https://cloud.langfuse.com")
+_SONNET_INPUT_COST_PER_TOKEN = 3.0 / 1_000_000
+_SONNET_OUTPUT_COST_PER_TOKEN = 15.0 / 1_000_000
 
 # ── App ───────────────────────────────────────────────────────────────────────
 
@@ -117,6 +130,12 @@ class InboundEmailRequest(BaseModel):
     sender_email: str
     body: str
     subject: Optional[str] = ""
+
+
+class BatchRunRequest(BaseModel):
+    tier: str = "free"
+    limit: int = 50
+    concurrency: int = 5
 
 
 # ── Health ────────────────────────────────────────────────────────────────────
@@ -273,7 +292,7 @@ async def scrape_linkedin(req: ScrapeRequest, _: None = Depends(_auth)):
     """
     c = get_container()
 
-    result = await c.linkedin.scrape_profile(
+    result = await c.linkedin.verify_employment(
         linkedin_url=req.linkedin_url,
         contact_name=req.contact_name,
         organization=req.organization or "",
@@ -425,20 +444,75 @@ async def inbound_email(req: InboundEmailRequest, _: None = Depends(_auth)):
 
 @app.get("/langfuse-stats", tags=["observability"])
 async def langfuse_stats(_: None = Depends(_auth)):
-    """
-    Placeholder until Langfuse is configured.
-    Returns not_configured=True so the frontend can show a graceful message.
-    """
+    """Query the Langfuse REST API and return aggregated token/cost stats."""
+    if not _LANGFUSE_PUBLIC_KEY or not _LANGFUSE_SECRET_KEY:
+        return {
+            "not_configured": True,
+            "total_calls": 0,
+            "total_input_tokens": 0,
+            "total_output_tokens": 0,
+            "total_tokens": 0,
+            "total_cost_usd": 0.0,
+            "avg_cost_per_call": 0.0,
+            "recent": [],
+            "langfuse_dashboard_url": "",
+        }
+
+    auth_header = "Basic " + base64.b64encode(
+        f"{_LANGFUSE_PUBLIC_KEY}:{_LANGFUSE_SECRET_KEY}".encode()
+    ).decode()
+
+    try:
+        async with httpx.AsyncClient(timeout=15.0) as client:
+            resp = await client.get(
+                f"{_LANGFUSE_BASE_URL}/api/public/observations",
+                params={"type": "GENERATION", "limit": 50},
+                headers={"Authorization": auth_header},
+            )
+    except Exception as e:
+        raise HTTPException(status_code=502, detail=f"Could not reach Langfuse: {e}")
+
+    if resp.status_code != 200:
+        raise HTTPException(status_code=502, detail=f"Langfuse API returned {resp.status_code}")
+
+    data = resp.json()
+    observations = data.get("data", [])
+    total_pages_items = data.get("meta", {}).get("totalItems", len(observations))
+
+    total_input = total_output = 0
+    total_cost = 0.0
+    recent = []
+
+    for obs in observations:
+        usage = obs.get("usage") or {}
+        inp = usage.get("input") or 0
+        out = usage.get("output") or 0
+        cost = obs.get("calculatedTotalCost")
+        if cost is None:
+            cost = inp * _SONNET_INPUT_COST_PER_TOKEN + out * _SONNET_OUTPUT_COST_PER_TOKEN
+        total_input += inp
+        total_output += out
+        total_cost += cost
+        if len(recent) < 10:
+            recent.append({
+                "name": obs.get("name"),
+                "model": obs.get("model"),
+                "input_tokens": inp,
+                "output_tokens": out,
+                "cost_usd": round(cost, 6),
+                "start_time": obs.get("startTime"),
+            })
+
+    n = len(observations)
     return {
-        "not_configured": True,
-        "total_calls": 0,
-        "total_input_tokens": 0,
-        "total_output_tokens": 0,
-        "total_tokens": 0,
-        "total_cost_usd": 0.0,
-        "avg_cost_per_call": 0.0,
-        "recent": [],
-        "langfuse_dashboard_url": "",
+        "total_calls": total_pages_items,
+        "total_input_tokens": total_input,
+        "total_output_tokens": total_output,
+        "total_tokens": total_input + total_output,
+        "total_cost_usd": round(total_cost, 6),
+        "avg_cost_per_call": round(total_cost / n, 6) if n > 0 else 0.0,
+        "recent": recent,
+        "langfuse_dashboard_url": _LANGFUSE_BASE_URL,
     }
 
 
@@ -474,3 +548,111 @@ async def agent_verify(contact_id: str, _: None = Depends(_auth)):
             "X-Accel-Buffering": "no",
         },
     )
+
+
+# ── Config status ─────────────────────────────────────────────────────────────
+
+
+@app.get("/config-status", tags=["meta"])
+async def config_status(_: None = Depends(_auth)):
+    """Return which API keys are configured and current batch settings."""
+    return {
+        "anthropic_configured": bool(os.getenv("ANTHROPIC_API_KEY")),
+        "supabase_configured": bool(os.getenv("SUPABASE_URL") and os.getenv("SUPABASE_SERVICE_KEY")),
+        "langfuse_configured": bool(os.getenv("LANGFUSE_SECRET_KEY") and os.getenv("LANGFUSE_PUBLIC_KEY")),
+        "zerobounce_configured": bool(os.getenv("ZEROBOUNCE_API_KEY")),
+        "resend_configured": bool(os.getenv("RESEND_API_KEY")),
+        "batch_limit": int(os.getenv("BATCH_LIMIT", 50)),
+        "batch_concurrency": int(os.getenv("BATCH_CONCURRENCY", 5)),
+    }
+
+
+# ── Batch receipts ────────────────────────────────────────────────────────────
+
+
+@app.get("/batch-receipts", tags=["batch"])
+async def get_batch_receipts(limit: int = 10, _: None = Depends(_auth)):
+    """Return the most recent batch run receipts (skips empty runs with 0 contacts)."""
+    c = get_container()
+    response = (
+        c.repository.client.table("batch_receipts")
+        .select("*")
+        .gt("contacts_processed", 0)
+        .order("run_at", desc=True)
+        .limit(limit)
+        .execute()
+    )
+    return response.data
+
+
+# ── Contacts — review queue ───────────────────────────────────────────────────
+
+
+@app.get("/contacts/review", tags=["contacts"])
+async def contacts_for_review(_: None = Depends(_auth)):
+    """Return contacts flagged for human review."""
+    c = get_container()
+    contacts = await c.repository.get_all_contacts()
+    return [
+        {
+            "id": ct.id,
+            "name": ct.name,
+            "email": ct.email,
+            "title": ct.title,
+            "organization": ct.organization,
+            "status": ct.status.value,
+            "needs_human_review": ct.needs_human_review,
+            "review_reason": ct.review_reason,
+            "linkedin_url": ct.linkedin_url,
+            "district_website": ct.district_website,
+        }
+        for ct in contacts
+        if ct.needs_human_review
+    ]
+
+
+# ── Batch run trigger ─────────────────────────────────────────────────────────
+
+
+@app.post("/batch/run", tags=["batch"])
+async def trigger_batch(req: BatchRunRequest, _: None = Depends(_auth)):
+    """Trigger a background batch verification run."""
+    import uuid as _uuid
+    from prospectkeeper.use_cases.process_batch import ProcessBatchRequest
+
+    batch_id = str(_uuid.uuid4())
+    logger.info(
+        f"[API] /batch/run triggered | batch_id={batch_id} "
+        f"tier={req.tier!r} limit={req.limit} concurrency={req.concurrency}"
+    )
+
+    async def _run():
+        try:
+            c = get_container()
+            response = await c.process_batch_use_case.execute(
+                ProcessBatchRequest(
+                    tier=req.tier,
+                    limit=req.limit,
+                    concurrency=req.concurrency,
+                    batch_id=batch_id,
+                )
+            )
+            logger.info(
+                f"[API] Batch run finished | batch_id={batch_id} "
+                f"processed={response.receipt.contacts_processed} "
+                f"errors={len(response.errors)}"
+            )
+        except Exception as e:
+            logger.error(
+                f"[API] Batch run FAILED | batch_id={batch_id} | error={e!r}",
+                exc_info=True,
+            )
+
+    asyncio.create_task(_run())
+    return {
+        "status": "started",
+        "batch_id": batch_id,
+        "tier": req.tier,
+        "limit": req.limit,
+        "concurrency": req.concurrency,
+    }
