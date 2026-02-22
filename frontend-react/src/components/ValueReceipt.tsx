@@ -65,7 +65,7 @@ export default function ValueReceipt() {
                     Value Receipt
                 </h1>
                 <p className="text-[12px] font-mono text-slate-500 uppercase tracking-widest font-semibold flex items-center gap-2">
-                    <span className="w-1.5 h-1.5 bg-green-500"></span> <span>Outcome-based ROI</span>
+                    <span className="w-1.5 h-1.5 bg-green-500 rounded-full inline-block"></span> <span>Outcome-based ROI</span>
                 </p>
             </div>
 
@@ -83,10 +83,10 @@ export default function ValueReceipt() {
                                 <p className="text-slate-600 font-mono text-[10px] font-bold uppercase tracking-widest mb-1 flex items-center gap-1.5"><DollarSign size={14} className="text-green-600" /> Value Gen</p>
                                 <p className="text-2xl font-bold text-slate-800">${r.total_value_generated_usd.toFixed(2)}</p>
                             </div>
-                            <div className="flex-1 bg-slate-50 border border-slate-200 p-4 rounded flex flex-col justify-center min-w-[130px]">
+                            <div className="flex-1 bg-slate-50 border border-slate-200 p-4 rounded flex flex-col justify-center min-w-[160px]">
                                 <p className="text-slate-600 font-mono text-[10px] font-bold uppercase tracking-widest mb-1 flex items-center gap-1.5"><Zap size={14} className="text-orange-500" /> API Cost</p>
-                                <p className="text-2xl font-bold text-slate-800">
-                                    {stats ? `$${stats.total_cost_usd.toFixed(4)}` : loading ? '...' : `$${apiCost.toFixed(4)}`}
+                                <p className="text-xl font-bold text-slate-800 tabular-nums">
+                                    {stats ? `$${stats.total_cost_usd.toFixed(4)}` : loading ? <span className="text-slate-400 text-base">Loading…</span> : `$${apiCost.toFixed(4)}`}
                                 </p>
                             </div>
                         </div>
@@ -195,8 +195,8 @@ export default function ValueReceipt() {
                         <FileText size={16} className="text-slate-500" />
                         Outcome-Based Invoice
                     </h3>
-                    <div className="bg-white text-slate-800 px-3 py-1.5 rounded border border-slate-200 font-mono font-bold text-[12px] shadow-sm">
-                        TOTAL_USD: ${r.simulated_invoice_usd.toFixed(2)}
+                    <div className="bg-white text-slate-800 px-3 py-1.5 rounded-lg border border-slate-200 font-mono font-bold text-[12px] shadow-xs">
+                        Amount Due: ${r.simulated_invoice_usd.toFixed(2)}
                     </div>
                 </div>
                 <div className="p-0">
