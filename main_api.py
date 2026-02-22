@@ -139,6 +139,8 @@ async def list_contacts(_: None = Depends(_auth)):
 
     result = []
     for contact in contacts:
+        if contact.status.value == "opted_out":
+            continue
         row = {
             "id": contact.id,
             "name": contact.name,
