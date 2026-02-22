@@ -1,14 +1,30 @@
-<svg xmlns="http://www.w3.org/2000/svg" viewBox="10 15 145 130" width="32" height="32">
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 320 160" width="320" height="160">
+  <defs>
+    <style>
+      @import url('https://fonts.googleapis.com/css2?family=DM+Serif+Display&amp;display=swap');
+    </style>
+  </defs>
+
   <!-- Card stack shadow layers -->
   <rect x="28" y="38" width="120" height="80" rx="4" fill="#d4c9b8" />
   <rect x="22" y="32" width="120" height="80" rx="4" fill="#e8ddd0" />
+
   <!-- Front card -->
   <rect x="16" y="26" width="120" height="80" rx="4" fill="#f5f0ea" stroke="#c8bfb0" stroke-width="1"/>
+
   <!-- Card hole for ring -->
   <circle cx="76" cy="26" r="5" fill="white" stroke="#c8bfb0" stroke-width="1"/>
+
   <!-- Horizontal lines on card -->
   <line x1="30" y1="50" x2="122" y2="50" stroke="#d4c9b8" stroke-width="1"/>
   <line x1="30" y1="62" x2="100" y2="62" stroke="#d4c9b8" stroke-width="1"/>
   <line x1="30" y1="74" x2="110" y2="74" stroke="#d4c9b8" stroke-width="1"/>
   <line x1="30" y1="86" x2="90" y2="86" stroke="#d4c9b8" stroke-width="1"/>
+
+
+
+  <!-- Wordmark -->
+  <text x="158" y="90" font-family="Georgia, 'Times New Roman', serif" font-size="42" font-weight="400" letter-spacing="-1" fill="#1a1a1a">rolodex</text>
+
+
 </svg>
