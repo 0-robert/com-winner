@@ -84,9 +84,8 @@ class SupabaseAdapter(IDataRepository):
         response = (
             self.client.table("contacts")
             .select("*")
-            .eq("status", "unknown")
+            .neq("status", "opted_out")
             .eq("needs_human_review", False)
-            .order("created_at")
             .limit(limit)
             .execute()
         )

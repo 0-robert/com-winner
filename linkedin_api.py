@@ -701,3 +701,56 @@ async def run_verification_agent(
             "X-Accel-Buffering": "no",
         },
     )
+
+
+# ── Config status ─────────────────────────────────────────────────────────────
+
+@app.get(
+    "/config-status",
+    summary="Return which API keys are configured and current batch settings",
+    tags=["Config"],
+)
+async def config_status(x_api_key: str = Header(...)) -> dict:
+    _require_api_key(x_api_key)
+    return {
+        "anthropic_configured": bool(os.environ.get("ANTHROPIC_API_KEY")),
+        "supabase_configured": bool(os.environ.get("SUPABASE_URL") and os.environ.get("SUPABASE_SERVICE_KEY")),
+        "langfuse_configured": bool(os.environ.get("LANGFUSE_SECRET_KEY") and os.environ.get("LANGFUSE_PUBLIC_KEY")),
+        "zerobounce_configured": bool(os.environ.get("ZEROBOUNCE_API_KEY")),
+        "resend_configured": bool(os.environ.get("RESEND_API_KEY")),
+        "batch_limit": int(os.environ.get("BATCH_LIMIT", 50)),
+        "batch_concurrency": int(os.environ.get("BATCH_CONCURRENCY", 5)),
+    }
+
+
+# ── Batch run trigger ─────────────────────────────────────────────────────────
+
+@app.post(
+    "/batch/run",
+    summary="Trigger a background batch verification run",
+    tags=["Batch"],
+)
+async def trigger_batch(
+    tier: str = "free",
+    limit: int = 50,
+    concurrency: int = 5,
+    x_api_key: str = Header(...),
+) -> dict:
+    _require_api_key(x_api_key)
+
+    async def _run_batch():
+        try:
+            from prospectkeeper.infrastructure.config import Config
+            from prospectkeeper.infrastructure.container import Container
+            from prospectkeeper.use_cases.process_batch import ProcessBatchRequest
+            config = Config.from_env()
+            container = Container(config)
+            await container.process_batch_use_case.execute(
+                ProcessBatchRequest(tier=tier, limit=limit, concurrency=concurrency)
+            )
+            logger.info(f"[Batch] Background run complete: tier={tier} limit={limit}")
+        except Exception as e:
+            logger.error(f"[Batch] Background run failed: {e}")
+
+    asyncio.create_task(_run_batch())
+    return {"status": "started", "tier": tier, "limit": limit, "concurrency": concurrency}
