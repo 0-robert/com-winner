@@ -165,6 +165,19 @@ export default function AllContacts() {
     total_failed: number;
   } | null>(null);
 
+  // ── Edit / Delete state ────────────────────────────────────────────────
+  const [editContact, setEditContact] = useState<Contact | null>(null);
+  const [editForm, setEditForm] = useState({
+    name: "",
+    email: "",
+    title: "",
+    organization: "",
+    linkedin_url: "",
+  });
+  const [isSavingEdit, setIsSavingEdit] = useState(false);
+  const [editError, setEditError] = useState<string | null>(null);
+  const [isDeleting, setIsDeleting] = useState(false);
+
   // ── Fetch contacts from API ────────────────────────────────────────────
   const fetchContacts = async () => {
     setLoading(true);
@@ -275,6 +288,80 @@ export default function AllContacts() {
 
   // ── Tabs ───────────────────────────────────────────────────────────────
   const tabs = ["All Contacts", "Review Required", "Departed"];
+
+  // ── Delete handler ─────────────────────────────────────────────────────
+  const deleteContact = async (contact: Contact) => {
+    if (!confirm(`Delete ${contact.name}? This cannot be undone.`)) return;
+    setIsDeleting(true);
+    try {
+      const res = await fetch(`/api/contacts/${contact.id}`, {
+        method: "DELETE",
+        headers: { "X-API-Key": "dev-key" },
+      });
+      if (!res.ok) {
+        const body = await res.json().catch(() => ({}));
+        throw new Error(body.detail || `HTTP ${res.status}`);
+      }
+      setContacts((prev) => prev.filter((c) => c.id !== contact.id));
+      setSelectedMoreContact(null);
+      setSyncError(null);
+    } catch (err) {
+      alert(err instanceof Error ? err.message : "Delete failed.");
+    } finally {
+      setIsDeleting(false);
+    }
+  };
+
+  // ── Edit handlers ──────────────────────────────────────────────────────
+  const openEditModal = (contact: Contact) => {
+    setEditContact(contact);
+    setEditForm({
+      name: contact.name || "",
+      email: contact.email || "",
+      title: contact.title || "",
+      organization: contact.organization || "",
+      linkedin_url: contact.linkedin_url || "",
+    });
+    setEditError(null);
+    setSelectedMoreContact(null);
+  };
+
+  const saveEdit = async () => {
+    if (!editContact) return;
+    if (!editForm.name.trim() || !editForm.organization.trim()) {
+      setEditError("Name and Organization are required.");
+      return;
+    }
+    setIsSavingEdit(true);
+    setEditError(null);
+    try {
+      const res = await fetch("/api/contacts", {
+        method: "PUT",
+        headers: { "Content-Type": "application/json", "X-API-Key": "dev-key" },
+        body: JSON.stringify({
+          ...editContact,
+          name: editForm.name.trim(),
+          email: editForm.email.trim(),
+          title: editForm.title.trim(),
+          organization: editForm.organization.trim(),
+          linkedin_url: editForm.linkedin_url.trim() || null,
+        }),
+      });
+      if (!res.ok) {
+        const body = await res.text();
+        throw new Error(body || `HTTP ${res.status}`);
+      }
+      const updated: Contact = await res.json();
+      setContacts((prev) =>
+        prev.map((c) => (c.id === updated.id ? { ...c, ...updated } : c)),
+      );
+      setEditContact(null);
+    } catch (err) {
+      setEditError(err instanceof Error ? err.message : "Save failed.");
+    } finally {
+      setIsSavingEdit(false);
+    }
+  };
 
   // ── Render ─────────────────────────────────────────────────────────────
   return (
@@ -715,7 +802,7 @@ export default function AllContacts() {
                 </span>
               </button>
               <button
-                onClick={() => setSelectedMoreContact(null)}
+                onClick={() => openEditModal(selectedMoreContact)}
                 className="w-full flex items-center gap-3 px-4 py-2.5 hover:bg-slate-50 rounded text-left transition-colors"
               >
                 <Edit size={16} className="text-slate-400" />
@@ -754,18 +841,20 @@ export default function AllContacts() {
             )}
             <div className="p-2 border-t border-slate-100 bg-slate-50/50">
               <button
-                onClick={() => {
-                  setSelectedMoreContact(null);
-                  setSyncError(null);
-                }}
-                className="w-full flex items-center gap-3 px-4 py-2.5 hover:bg-red-50 rounded text-left transition-colors group"
+                onClick={() => deleteContact(selectedMoreContact)}
+                disabled={isDeleting}
+                className="w-full flex items-center gap-3 px-4 py-2.5 hover:bg-red-50 rounded text-left transition-colors group disabled:opacity-50"
               >
-                <Trash
-                  size={16}
-                  className="text-red-400 group-hover:text-red-600 transition-colors"
-                />
+                {isDeleting ? (
+                  <Loader2 size={16} className="text-red-400 animate-spin" />
+                ) : (
+                  <Trash
+                    size={16}
+                    className="text-red-400 group-hover:text-red-600 transition-colors"
+                  />
+                )}
                 <span className="text-[13px] font-semibold text-red-600">
-                  Delete Contact
+                  {isDeleting ? "Deleting..." : "Delete Contact"}
                 </span>
               </button>
             </div>
@@ -955,6 +1044,121 @@ export default function AllContacts() {
               >
                 <ExternalLink size={14} />
                 Verify on LinkedIn
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* ── Edit Contact Modal ───────────────────────────────────────────── */}
+      {editContact && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-slate-900/40 backdrop-blur-sm p-4">
+          <div className="bg-white rounded-lg shadow-xl border border-slate-200 w-full max-w-md overflow-hidden animate-in fade-in zoom-in-95 duration-200">
+            <div className="px-6 py-4 border-b border-slate-100 flex items-center justify-between bg-slate-50/50">
+              <h3 className="text-[16px] font-bold text-slate-900">
+                Edit Contact
+              </h3>
+              <button
+                onClick={() => setEditContact(null)}
+                className="text-slate-400 hover:text-slate-700 transition-colors"
+              >
+                <X size={20} />
+              </button>
+            </div>
+            <div className="p-6 space-y-4">
+              {editError && (
+                <div className="bg-red-50 border border-red-200 text-red-700 text-[12px] font-medium px-4 py-2.5 rounded">
+                  {editError}
+                </div>
+              )}
+              <div>
+                <label className="block text-[11px] font-bold text-slate-500 uppercase tracking-widest mb-1.5">
+                  Full Name <span className="text-red-400">*</span>
+                </label>
+                <input
+                  type="text"
+                  value={editForm.name}
+                  onChange={(e) =>
+                    setEditForm((p) => ({ ...p, name: e.target.value }))
+                  }
+                  className="w-full px-4 py-2.5 bg-white border border-slate-300 rounded text-[13px] focus:outline-none focus:border-blue-500 focus:ring-1 focus:ring-blue-500 transition-all shadow-sm"
+                />
+              </div>
+              <div>
+                <label className="block text-[11px] font-bold text-slate-500 uppercase tracking-widest mb-1.5">
+                  Email Address
+                </label>
+                <input
+                  type="email"
+                  value={editForm.email}
+                  onChange={(e) =>
+                    setEditForm((p) => ({ ...p, email: e.target.value }))
+                  }
+                  className="w-full px-4 py-2.5 bg-white border border-slate-300 rounded text-[13px] focus:outline-none focus:border-blue-500 focus:ring-1 focus:ring-blue-500 transition-all shadow-sm"
+                />
+              </div>
+              <div className="grid grid-cols-2 gap-4">
+                <div>
+                  <label className="block text-[11px] font-bold text-slate-500 uppercase tracking-widest mb-1.5">
+                    Job Title
+                  </label>
+                  <input
+                    type="text"
+                    value={editForm.title}
+                    onChange={(e) =>
+                      setEditForm((p) => ({ ...p, title: e.target.value }))
+                    }
+                    className="w-full px-4 py-2.5 bg-white border border-slate-300 rounded text-[13px] focus:outline-none focus:border-blue-500 focus:ring-1 focus:ring-blue-500 transition-all shadow-sm"
+                  />
+                </div>
+                <div>
+                  <label className="block text-[11px] font-bold text-slate-500 uppercase tracking-widest mb-1.5">
+                    Organization <span className="text-red-400">*</span>
+                  </label>
+                  <input
+                    type="text"
+                    value={editForm.organization}
+                    onChange={(e) =>
+                      setEditForm((p) => ({
+                        ...p,
+                        organization: e.target.value,
+                      }))
+                    }
+                    className="w-full px-4 py-2.5 bg-white border border-slate-300 rounded text-[13px] focus:outline-none focus:border-blue-500 focus:ring-1 focus:ring-blue-500 transition-all shadow-sm"
+                  />
+                </div>
+              </div>
+              <div>
+                <label className="flex items-center gap-2 text-[11px] font-bold text-slate-500 uppercase tracking-widest mb-1.5">
+                  LinkedIn URL{" "}
+                  <span className="text-[9px] bg-slate-100 text-slate-400 px-1.5 py-0.5 rounded">
+                    Optional
+                  </span>
+                </label>
+                <input
+                  type="url"
+                  value={editForm.linkedin_url}
+                  onChange={(e) =>
+                    setEditForm((p) => ({ ...p, linkedin_url: e.target.value }))
+                  }
+                  className="w-full px-4 py-2.5 bg-white border border-slate-300 rounded text-[13px] focus:outline-none focus:border-blue-500 focus:ring-1 focus:ring-blue-500 transition-all font-mono shadow-sm"
+                />
+              </div>
+            </div>
+            <div className="px-6 py-4 border-t border-slate-100 bg-slate-50/50 flex justify-end gap-3">
+              <button
+                onClick={() => setEditContact(null)}
+                disabled={isSavingEdit}
+                className="px-5 py-2.5 rounded text-[13px] font-bold text-slate-600 hover:bg-slate-200 transition-colors"
+              >
+                Cancel
+              </button>
+              <button
+                onClick={saveEdit}
+                disabled={isSavingEdit}
+                className="px-5 py-2.5 bg-blue-600 text-white rounded text-[13px] font-bold hover:bg-blue-700 shadow-sm transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+              >
+                {isSavingEdit ? "Saving\u2026" : "Save Changes"}
               </button>
             </div>
           </div>
