@@ -38,13 +38,8 @@ export default function Navbar() {
     >
       <div className="max-w-7xl mx-auto px-8 h-16 flex items-center justify-between">
         {/* Logo */}
-        <a href="#" className="nav-item flex items-center gap-2 group">
-          <div className="w-8 h-8 rounded-lg bg-[#111827] flex items-center justify-center">
-            <span className="text-white font-bold text-xs" style={{ fontFamily: 'var(--font-serif)' }}>PK</span>
-          </div>
-          <span className="text-[#111827] font-semibold text-base tracking-tight" style={{ fontFamily: 'var(--font-sans)' }}>
-            ProspectKeeper
-          </span>
+        <a href="#" className="nav-item flex items-center group">
+          <img src="/rolodex-logo.svg" alt="Rolodex" className="h-11 w-auto" />
         </a>
 
         {/* Center links */}

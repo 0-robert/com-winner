@@ -84,15 +84,9 @@ function App() {
         <aside className="w-[232px] bg-white border-r border-[#e5e7eb] flex flex-col flex-shrink-0 h-screen sticky top-0 overflow-y-auto">
 
           {/* Logo */}
-          <div className="flex items-center gap-3 px-4 pt-6 pb-5 border-b border-[#e5e7eb]">
-            <Link to="/" className="flex items-center gap-3 group">
-              <div className="w-7 h-7 rounded-md bg-[#0B0B0B] flex items-center justify-center text-white font-bold text-[11px] shadow-sm shrink-0">
-                <span className="font-mono tracking-tight text-white">PK</span>
-              </div>
-              <div>
-                <h2 className="text-[14px] font-bold text-[#0B0B0B] tracking-tight leading-tight">ProspectKeeper</h2>
-                <p className="text-[10px] font-mono text-[#6B7280] tracking-tight uppercase">agentic-crm-v1</p>
-              </div>
+          <div className="flex items-center px-4 pt-5 pb-4 border-b border-[#e5e7eb]">
+            <Link to="/" className="group">
+              <img src="/rolodex-logo.svg" alt="Rolodex" className="h-14 w-auto" />
             </Link>
           </div>
 
