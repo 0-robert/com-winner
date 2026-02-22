@@ -8,6 +8,7 @@ from typing import List, Optional
 
 from ..entities.contact import Contact
 from ..entities.verification_result import VerificationResult
+from ..entities.agent_economics import ValueProofReceipt
 
 
 class IDataRepository(ABC):
@@ -55,4 +56,9 @@ class IDataRepository(ABC):
     @abstractmethod
     async def get_contact_by_email(self, email: str) -> Optional[Contact]:
         """Look up a contact by their email address."""
+        pass
+
+    @abstractmethod
+    async def save_batch_receipt(self, receipt: ValueProofReceipt) -> None:
+        """Persist the Value-Proof Receipt for a completed batch run."""
         pass
