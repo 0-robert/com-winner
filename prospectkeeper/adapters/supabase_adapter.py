@@ -143,6 +143,16 @@ class SupabaseAdapter(IDataRepository):
         self.client.table("contacts").insert(row).execute()
         return contact
 
+    async def delete_contact(self, contact_id: str) -> bool:
+        """Delete a contact by ID. Returns True if a row was deleted."""
+        response = (
+            self.client.table("contacts")
+            .delete()
+            .eq("id", contact_id)
+            .execute()
+        )
+        return bool(response.data)
+
     async def get_contact_by_email(self, email: str) -> Optional[Contact]:
         response = (
             self.client.table("contacts")

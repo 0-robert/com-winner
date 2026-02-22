@@ -234,6 +234,15 @@ async def bulk_update_contacts(contacts: List[ContactSchema], x_api_key: str = H
     await _adapter.bulk_update_contacts(domain_contacts)
     return {"status": "success", "updated": len(contacts)}
 
+@app.delete("/contacts/{contact_id}", tags=["Contacts"])
+async def delete_contact(contact_id: str, x_api_key: str = Header(...)):
+    """Delete a contact by ID."""
+    _require_api_key(x_api_key)
+    deleted = await _adapter.delete_contact(contact_id)
+    if not deleted:
+        raise HTTPException(status_code=404, detail="Contact not found")
+    return {"status": "deleted", "id": contact_id}
+
 @app.get("/contacts/{contact_id}/linkedin-change", tags=["Contacts"])
 async def get_linkedin_change(contact_id: str, x_api_key: str = Header(...)):
     """Return the most recent snapshot where data actually changed, with the diff summary."""
