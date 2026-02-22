@@ -45,7 +45,7 @@ export default function ReviewQueue() {
                     Review Queue
                 </h1>
                 <p className="text-[12px] font-mono text-slate-500 uppercase tracking-widest font-semibold flex items-center gap-2">
-                    <span className="w-1.5 h-1.5 bg-orange-500"></span> <span>Pending Manual Checks</span>
+                    <span className="w-1.5 h-1.5 bg-orange-500 rounded-full inline-block"></span> <span>Pending Manual Checks</span>
                 </p>
             </div>
 

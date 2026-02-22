@@ -371,7 +371,7 @@ export default function AllContacts() {
           Manage Contacts
         </h1>
         <p className="text-[12px] font-mono text-slate-500 uppercase tracking-widest font-semibold flex items-center gap-2">
-          <span className="w-1.5 h-1.5 bg-blue-500"></span> Agentic Database
+          <span className="w-1.5 h-1.5 bg-blue-500 rounded-full inline-block"></span> Agentic Database
         </p>
       </div>
 
@@ -462,6 +462,30 @@ export default function AllContacts() {
               No contacts found.
             </div>
           )}
+          {loading && contacts.length === 0 && (
+            <div className="space-y-0.5 pt-1">
+              {[...Array(5)].map((_, i) => (
+                <div key={i} className="grid grid-cols-12 gap-4 px-4 py-3 items-center animate-pulse">
+                  <div className="col-span-3 flex items-center gap-3">
+                    <div className="w-3.5 h-3.5 rounded-sm bg-slate-200 shrink-0"></div>
+                    <div className="w-8 h-8 rounded bg-slate-200 shrink-0"></div>
+                    <div className="flex flex-col gap-1.5 min-w-0 flex-1">
+                      <div className="h-2.5 bg-slate-200 rounded w-3/4"></div>
+                      <div className="h-2 bg-slate-100 rounded w-1/2"></div>
+                    </div>
+                  </div>
+                  <div className="col-span-2 space-y-1.5">
+                    <div className="h-2.5 bg-slate-200 rounded w-4/5"></div>
+                    <div className="h-2 bg-slate-100 rounded w-3/5"></div>
+                  </div>
+                  <div className="col-span-1"><div className="w-7 h-7 bg-slate-100 rounded"></div></div>
+                  <div className="col-span-2"><div className="h-5 bg-slate-100 rounded w-20"></div></div>
+                  <div className="col-span-3"><div className="h-5 bg-slate-100 rounded w-14"></div></div>
+                  <div className="col-span-1"></div>
+                </div>
+              ))}
+            </div>
+          )}
           {contacts.map((contact) => {
             const freshness = getFreshness(contact);
             const fc = FRESHNESS_CONFIG[freshness];
@@ -469,8 +493,8 @@ export default function AllContacts() {
             const detail = changeDetails[contact.id];
 
             return (
-              <div key={contact.id} className="group relative">
-                <div className="grid grid-cols-12 gap-4 px-4 py-3 items-center bg-white rounded border border-transparent transition-colors hover:bg-slate-50">
+              <div key={contact.id} className="group relative transition-colors duration-150 rounded border border-transparent hover:border-slate-100 hover:bg-slate-50/70">
+                <div className="grid grid-cols-12 gap-4 px-4 py-3 items-center rounded">
                   {/* Client */}
                   <div className="col-span-3 flex items-center gap-3">
                     <div className="w-3.5 h-3.5 rounded-sm border border-slate-300 pointer-events-none group-hover:border-blue-400 bg-white flex-shrink-0"></div>
