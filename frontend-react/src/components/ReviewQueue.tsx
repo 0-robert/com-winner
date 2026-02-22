@@ -41,24 +41,24 @@ export default function ReviewQueue() {
     return (
         <div>
             <div className="mb-6 pl-1">
-                <h1 className="text-[24px] font-bold text-slate-900 tracking-tight mb-1">
+                <h1 className="text-[32px] font-bold text-[#0B0B0B] tracking-tight mb-1 font-serif">
                     Review Queue
                 </h1>
-                <p className="text-[12px] font-mono text-slate-500 uppercase tracking-widest font-semibold flex items-center gap-2">
-                    <span className="w-1.5 h-1.5 bg-orange-500 rounded-full inline-block"></span> <span>Pending Manual Checks</span>
+                <p className="text-[12px] font-mono text-[#6B7280] uppercase tracking-widest font-semibold flex items-center gap-2">
+                    <span className="w-1.5 h-1.5 bg-[#3DF577] rounded-full inline-block"></span> <span>Pending Manual Checks</span>
                 </p>
             </div>
 
-            <div className="bg-white rounded border border-slate-200 p-6 shadow-sm">
+            <div className="bg-white rounded border border-[#e5e7eb] p-6 shadow-sm">
 
-                <div className="flex items-center justify-between mb-6 pb-4 border-b border-slate-200">
+                <div className="flex items-center justify-between mb-6 pb-4 border-b border-[#e5e7eb]">
                     <div className="flex items-center gap-3">
-                        <div className="w-8 h-8 rounded bg-orange-50 border border-orange-200 flex items-center justify-center text-orange-600">
+                        <div className="w-8 h-8 rounded bg-[#f9fafb] border border-[#e5e7eb] flex items-center justify-center text-[#0B0B0B]">
                             <Sparkles size={16} />
                         </div>
                         <div>
-                            <h2 className="text-[16px] font-bold text-slate-800 tracking-tight">Manual Verifications</h2>
-                            <p className="text-[11px] font-mono text-slate-500">Agentic escalation queue</p>
+                            <h2 className="text-[16px] font-bold text-[#0B0B0B] tracking-tight">Manual Verifications</h2>
+                            <p className="text-[11px] font-mono text-[#6B7280]">Agentic escalation queue</p>
                         </div>
                     </div>
                 </div>
@@ -67,50 +67,50 @@ export default function ReviewQueue() {
                     {displayContacts.map((contact) => {
                         const isExpanded = expandedId === contact.id;
                         return (
-                            <div key={contact.id} className={`rounded border transition-all duration-200 overflow-hidden ${isExpanded ? 'border-orange-300 shadow-sm bg-white' : 'border-slate-200 bg-slate-50 hover:bg-white hover:border-slate-300'}`}>
+                            <div key={contact.id} className={`rounded border transition-all duration-200 overflow-hidden ${isExpanded ? 'border-[#0B0B0B] shadow-sm bg-white' : 'border-[#e5e7eb] bg-[#f9fafb] hover:bg-white hover:border-[#0B0B0B]'}`}>
                                 <button
                                     onClick={() => toggleExpand(contact.id)}
                                     className="w-full text-left px-5 py-4 flex items-center justify-between focus:outline-none"
                                 >
                                     <div className="flex items-center gap-4">
-                                        <div className="w-10 h-10 rounded bg-slate-100 flex items-center justify-center text-slate-700 font-bold text-[13px] border border-slate-200 relative">
+                                        <div className="w-10 h-10 rounded bg-[#f9fafb] flex items-center justify-center text-[#0B0B0B] font-bold text-[13px] border border-[#e5e7eb] relative">
                                             {contact.name.split(' ').map((n: string) => n[0]).join('')}
                                             <div className="absolute -top-1.5 -right-1.5 w-4 h-4 rounded border-2 border-white flex items-center justify-center bg-white">
-                                                <AlertCircle size={12} className="text-orange-500" />
+                                                <AlertCircle size={12} className="text-[#3DF577]" />
                                             </div>
                                         </div>
                                         <div className="flex flex-col">
-                                            <h3 className="font-bold text-slate-900 text-[14px] tracking-tight">{contact.name}</h3>
-                                            <p className="text-[12px] text-slate-500 font-mono mt-0.5">{contact.organization}</p>
+                                            <h3 className="font-bold text-[#0B0B0B] text-[14px] tracking-tight">{contact.name}</h3>
+                                            <p className="text-[12px] text-[#6B7280] font-mono mt-0.5">{contact.organization}</p>
                                         </div>
                                     </div>
                                     <div className="flex items-center gap-5">
-                                        <span className="px-2 py-0.5 rounded font-mono text-[10px] uppercase font-bold tracking-widest bg-white border border-orange-200 text-orange-600 shadow-sm">NEEDS REVIEW</span>
-                                        <div className={`w-6 h-6 rounded flex items-center justify-center transition-colors border ${isExpanded ? 'bg-orange-50 text-orange-600 border-orange-200' : 'bg-white text-slate-400 border-slate-200'}`}>
+                                        <span className="px-2 py-0.5 rounded font-mono text-[10px] uppercase font-bold tracking-widest bg-white border border-[#0B0B0B] text-[#0B0B0B] shadow-sm">NEEDS REVIEW</span>
+                                        <div className={`w-6 h-6 rounded flex items-center justify-center transition-colors border ${isExpanded ? 'bg-[#0B0B0B] text-white border-[#0B0B0B]' : 'bg-white text-[#6B7280] border-[#e5e7eb]'}`}>
                                             {isExpanded ? <ChevronUp size={14} /> : <ChevronDown size={14} />}
                                         </div>
                                     </div>
                                 </button>
 
                                 {isExpanded && (
-                                    <div className="px-5 py-5 border-t border-slate-200 grid grid-cols-1 lg:grid-cols-2 gap-6 bg-slate-50">
+                                    <div className="px-5 py-5 border-t border-[#e5e7eb] grid grid-cols-1 lg:grid-cols-2 gap-6 bg-[#f9fafb]">
                                         <div className="space-y-4">
-                                            <p className="text-[11px] font-mono font-bold text-slate-500 uppercase tracking-widest mb-1">
+                                            <p className="text-[11px] font-mono font-bold text-[#6B7280] uppercase tracking-widest mb-1">
                                                 Target Profile Document
                                             </p>
-                                            <div className="bg-white border border-slate-200 rounded p-4 shadow-sm">
+                                            <div className="bg-white border border-[#e5e7eb] rounded p-4 shadow-sm">
                                                 <div className="space-y-3 font-mono text-[12px]">
-                                                    <div className="flex justify-between items-center border-b border-slate-100 pb-2">
-                                                        <span className="text-slate-500">Title Field</span>
-                                                        <span className="font-bold text-slate-800 bg-slate-100 px-1.5 py-0.5 rounded">{contact.title || 'Unknown'}</span>
+                                                    <div className="flex justify-between items-center border-b border-[#e5e7eb] pb-2">
+                                                        <span className="text-[#6B7280]">Title Field</span>
+                                                        <span className="font-bold text-[#0B0B0B] bg-[#f9fafb] px-1.5 py-0.5 rounded border border-[#e5e7eb]">{contact.title || 'Unknown'}</span>
                                                     </div>
-                                                    <div className="flex justify-between items-center border-b border-slate-100 pb-2">
-                                                        <span className="text-slate-500">Email Address</span>
-                                                        <span className="font-bold text-slate-800">{contact.email}</span>
+                                                    <div className="flex justify-between items-center border-b border-[#e5e7eb] pb-2">
+                                                        <span className="text-[#6B7280]">Email Address</span>
+                                                        <span className="font-bold text-[#0B0B0B]">{contact.email}</span>
                                                     </div>
                                                     <div className="flex justify-between items-center">
-                                                        <span className="text-slate-500">System State</span>
-                                                        <span className="font-bold text-slate-800 capitalize border border-slate-200 bg-slate-50 px-1.5 py-0.5 rounded">{contact.status}</span>
+                                                        <span className="text-[#6B7280]">System State</span>
+                                                        <span className="font-bold text-[#0B0B0B] capitalize border border-[#e5e7eb] bg-[#f9fafb] px-1.5 py-0.5 rounded">{contact.status}</span>
                                                     </div>
                                                 </div>
                                             </div>
@@ -118,10 +118,10 @@ export default function ReviewQueue() {
 
                                         <div className="flex flex-col justify-between">
                                             <div className="flex-1 space-y-4">
-                                                <p className="text-[11px] font-mono font-bold text-slate-500 uppercase tracking-widest mb-1">
+                                                <p className="text-[11px] font-mono font-bold text-[#6B7280] uppercase tracking-widest mb-1">
                                                     Agent Diagnostic
                                                 </p>
-                                                <div className="bg-white font-mono border border-orange-200 text-slate-700 text-[12px] p-4 rounded shadow-sm border-l-2 border-l-orange-400">
+                                                <div className="bg-white font-mono border border-[#e5e7eb] text-[#0B0B0B] text-[12px] p-4 rounded shadow-sm border-l-2 border-l-[#0B0B0B]">
                                                     {contact.review_reason}
                                                 </div>
                                             </div>
@@ -129,13 +129,13 @@ export default function ReviewQueue() {
                                             <div className="flex justify-end gap-3 pt-4 font-mono">
                                                 <button
                                                     onClick={(e) => { e.stopPropagation(); setActionModal({ type: 'deactivate', contact }); }}
-                                                    className="px-4 py-2 bg-white border border-slate-300 rounded text-[11px] font-bold text-slate-600 hover:bg-slate-50 transition-colors uppercase tracking-widest shadow-sm"
+                                                    className="px-4 py-2 bg-white border border-[#e5e7eb] rounded text-[11px] font-bold text-[#0B0B0B] hover:bg-[#f9fafb] transition-colors uppercase tracking-widest shadow-sm"
                                                 >
                                                     Deactivate Data
                                                 </button>
                                                 <button
                                                     onClick={(e) => { e.stopPropagation(); setActionModal({ type: 'verify', contact }); }}
-                                                    className="flex items-center gap-1.5 px-4 py-2 bg-blue-600 border border-transparent rounded text-[11px] font-bold text-white hover:bg-blue-700 transition-colors shadow-sm uppercase tracking-widest"
+                                                    className="flex items-center gap-1.5 px-4 py-2 bg-[#3DF577] border border-transparent rounded text-[11px] font-bold text-[#0B0B0B] hover:bg-[#34d366] transition-colors shadow-sm uppercase tracking-widest"
                                                 >
                                                     <CheckCircle size={14} /> Verify & Update
                                                 </button>

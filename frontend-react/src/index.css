@@ -1,23 +1,30 @@
-@import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800;900&family=JetBrains+Mono:wght@400;500;700&display=swap');
+@import url('https://fonts.googleapis.com/css2?family=DM+Sans:wght@400;500;700&family=Playfair+Display:ital,wght@0,600;1,600&family=JetBrains+Mono:wght@400;500;700&display=swap');
 @import "tailwindcss";
 @plugin "tailwindcss-animate";
 
 @theme {
-  --color-primary-500: #6366f1;
-  --color-background: #f1f4f9;
+  --color-primary-500: #3DF577;
+  /* Neon Mint Green */
+  --color-background: #ffffff;
+  /* Pure White */
   --color-surface: #ffffff;
-  --font-sans: 'Inter', system-ui, sans-serif;
+  --color-border-delicate: #e5e7eb;
+  --font-sans: 'DM Sans', system-ui, sans-serif;
+  --font-serif: 'Playfair Display', Georgia, serif;
   --font-mono: 'JetBrains Mono', monospace;
 }
 
 @layer base {
-  *, *::before, *::after {
+
+  *,
+  *::before,
+  *::after {
     box-sizing: border-box;
   }
 
   body {
     background-color: var(--color-background);
-    color: #0f172a;
+    color: #0B0B0B;
     font-family: var(--font-sans);
     margin: 0;
     -webkit-font-smoothing: antialiased;
