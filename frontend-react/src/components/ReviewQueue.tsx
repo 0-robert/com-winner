@@ -1,41 +1,69 @@
 import { useState, useEffect } from 'react';
-import { supabase } from '../lib/supabase';
 import type { Contact } from '../types';
-import { Sparkles, ChevronDown, ChevronUp, AlertCircle, CheckCircle, X } from 'lucide-react';
+import { Sparkles, ChevronDown, ChevronUp, AlertCircle, CheckCircle, X, Loader2 } from 'lucide-react';
 
 export default function ReviewQueue() {
     const [contacts, setContacts] = useState<Contact[]>([]);
+    const [loading, setLoading] = useState(true);
     const [expandedId, setExpandedId] = useState<string | null>(null);
     const [actionModal, setActionModal] = useState<{ type: 'deactivate' | 'verify', contact: Contact } | null>(null);
+    const [acting, setActing] = useState(false);
+    const [actionError, setActionError] = useState<string | null>(null);
 
     useEffect(() => {
         fetchReviewQueue();
     }, []);
 
     async function fetchReviewQueue() {
+        setLoading(true);
         try {
-            const { data, error } = await supabase
-                .from('contacts')
-                .select('*')
-                .eq('needs_human_review', true)
-                .order('updated_at', { ascending: false });
-
-            if (error) throw error;
-            setContacts(data || []);
-            if (data && data.length > 0) {
-                setExpandedId(data[0].id);
-            }
+            const res = await fetch('/api/contacts', {
+                headers: { 'X-API-Key': 'dev-key' },
+            });
+            if (!res.ok) throw new Error(`HTTP ${res.status}`);
+            const all: Contact[] = await res.json();
+            const reviewNeeded = all.filter((c) => c.needs_human_review);
+            setContacts(reviewNeeded);
+            if (reviewNeeded.length > 0) setExpandedId(reviewNeeded[0].id);
         } catch (err: any) {
-            console.error(err);
+            console.error('ReviewQueue fetch error:', err);
+        } finally {
+            setLoading(false);
         }
     }
 
-    const displayContacts = contacts.length > 0 ? contacts : [
-        { id: 'review1', name: 'Tom Cook', email: 'tom@example.com', title: 'Director', organization: 'Acme Corp', status: 'unknown', review_reason: 'Agent conflict: \'Director of Engineering\' found on LinkedIn, but email bounced. Manual verification required.', district_website: 'https://example.com' }
-    ] as Contact[];
-
     const toggleExpand = (id: string) => {
         setExpandedId(prev => prev === id ? null : id);
+    };
+
+    const confirmAction = async () => {
+        if (!actionModal) return;
+        setActing(true);
+        setActionError(null);
+
+        const { type, contact } = actionModal;
+        const patch = type === 'verify'
+            ? { status: 'active', needs_human_review: false }
+            : { status: 'inactive', needs_human_review: false };
+
+        try {
+            const res = await fetch('/api/contacts', {
+                method: 'PUT',
+                headers: { 'Content-Type': 'application/json', 'X-API-Key': 'dev-key' },
+                body: JSON.stringify({ ...contact, ...patch }),
+            });
+            if (!res.ok) {
+                const body = await res.json().catch(() => ({}));
+                throw new Error(body.detail || `HTTP ${res.status}`);
+            }
+            // Remove resolved contact from list
+            setContacts(prev => prev.filter(c => c.id !== contact.id));
+            setActionModal(null);
+        } catch (err: any) {
+            setActionError(err.message || 'Action failed.');
+        } finally {
+            setActing(false);
+        }
     };
 
     return (
@@ -61,10 +89,26 @@ export default function ReviewQueue() {
                             <p className="text-[11px] font-mono text-[#6B7280]">Agentic escalation queue</p>
                         </div>
                     </div>
+                    <span className="text-[11px] font-mono text-[#6B7280]">
+                        {loading ? 'Loading...' : `${contacts.length} pending`}
+                    </span>
                 </div>
 
+                {loading && (
+                    <div className="py-12 text-center text-[#9ca3af] font-mono text-[12px]">
+                        <Loader2 size={18} className="animate-spin mx-auto mb-2" />
+                        Fetching review queue...
+                    </div>
+                )}
+
+                {!loading && contacts.length === 0 && (
+                    <div className="py-12 text-center text-[#9ca3af] font-mono text-[12px]">
+                        No contacts pending review.
+                    </div>
+                )}
+
                 <div className="space-y-3">
-                    {displayContacts.map((contact) => {
+                    {contacts.map((contact) => {
                         const isExpanded = expandedId === contact.id;
                         return (
                             <div key={contact.id} className={`rounded border transition-all duration-200 overflow-hidden ${isExpanded ? 'border-[#0B0B0B] shadow-sm bg-white' : 'border-[#e5e7eb] bg-[#f9fafb] hover:bg-white hover:border-[#0B0B0B]'}`}>
@@ -122,19 +166,19 @@ export default function ReviewQueue() {
                                                     Agent Diagnostic
                                                 </p>
                                                 <div className="bg-white font-mono border border-[#e5e7eb] text-[#0B0B0B] text-[12px] p-4 rounded shadow-sm border-l-2 border-l-[#0B0B0B]">
-                                                    {contact.review_reason}
+                                                    {contact.review_reason || 'No diagnostic available.'}
                                                 </div>
                                             </div>
 
                                             <div className="flex justify-end gap-3 pt-4 font-mono">
                                                 <button
-                                                    onClick={(e) => { e.stopPropagation(); setActionModal({ type: 'deactivate', contact }); }}
+                                                    onClick={(e) => { e.stopPropagation(); setActionError(null); setActionModal({ type: 'deactivate', contact }); }}
                                                     className="px-4 py-2 bg-white border border-[#e5e7eb] rounded text-[11px] font-bold text-[#0B0B0B] hover:bg-[#f9fafb] transition-colors uppercase tracking-widest shadow-sm"
                                                 >
                                                     Deactivate Data
                                                 </button>
                                                 <button
-                                                    onClick={(e) => { e.stopPropagation(); setActionModal({ type: 'verify', contact }); }}
+                                                    onClick={(e) => { e.stopPropagation(); setActionError(null); setActionModal({ type: 'verify', contact }); }}
                                                     className="flex items-center gap-1.5 px-4 py-2 bg-[#3DF577] border border-transparent rounded text-[11px] font-bold text-[#0B0B0B] hover:bg-[#34d366] transition-colors shadow-sm uppercase tracking-widest"
                                                 >
                                                     <CheckCircle size={14} /> Verify & Update
@@ -158,8 +202,9 @@ export default function ReviewQueue() {
                                 {actionModal.type === 'deactivate' ? 'Deactivate Contact' : 'Verify Contact'}
                             </h3>
                             <button
-                                onClick={() => setActionModal(null)}
+                                onClick={() => { setActionModal(null); setActionError(null); }}
                                 className="text-slate-400 hover:text-slate-700 transition-colors"
+                                disabled={acting}
                             >
                                 <X size={20} />
                             </button>
@@ -172,21 +217,28 @@ export default function ReviewQueue() {
                                     : `Confirm that ${actionModal.contact.name}'s data is accurate and resolve the review flag. They will be returned to active agentic sync.`
                                 }
                             </p>
+                            {actionError && (
+                                <p className="mt-3 text-[12px] font-mono text-red-600 bg-red-50 border border-red-200 rounded px-3 py-2">
+                                    {actionError}
+                                </p>
+                            )}
                         </div>
 
                         <div className="px-6 py-4 border-t border-slate-100 bg-slate-50/50 flex justify-end gap-3">
                             <button
-                                onClick={() => setActionModal(null)}
-                                className="px-5 py-2.5 rounded text-[13px] font-bold text-slate-600 hover:bg-slate-200 transition-colors font-mono uppercase tracking-widest"
+                                onClick={() => { setActionModal(null); setActionError(null); }}
+                                disabled={acting}
+                                className="px-5 py-2.5 rounded text-[13px] font-bold text-slate-600 hover:bg-slate-200 transition-colors font-mono uppercase tracking-widest disabled:opacity-50"
                             >
                                 Cancel
                             </button>
                             <button
-                                onClick={() => setActionModal(null)}
-                                className={`px-5 py-2.5 text-white rounded text-[13px] font-bold shadow-sm transition-colors font-mono uppercase tracking-widest ${actionModal.type === 'deactivate' ? 'bg-red-600 hover:bg-red-700' : 'bg-blue-600 hover:bg-blue-700'
-                                    }`}
+                                onClick={confirmAction}
+                                disabled={acting}
+                                className={`px-5 py-2.5 text-white rounded text-[13px] font-bold shadow-sm transition-colors font-mono uppercase tracking-widest flex items-center gap-2 disabled:opacity-50 disabled:cursor-not-allowed ${actionModal.type === 'deactivate' ? 'bg-red-600 hover:bg-red-700' : 'bg-blue-600 hover:bg-blue-700'}`}
                             >
-                                Confirm
+                                {acting && <Loader2 size={13} className="animate-spin" />}
+                                {acting ? 'Saving...' : 'Confirm'}
                             </button>
                         </div>
                     </div>

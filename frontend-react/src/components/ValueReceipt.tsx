@@ -39,13 +39,18 @@ export default function ValueReceipt() {
     const fetchStats = () => {
         setLoading(true);
         setError(null);
-        fetch('/api/langfuse-stats')
+        fetch('/api/langfuse-stats', { headers: { 'X-API-Key': 'dev-key' } })
             .then((res) => {
                 if (!res.ok) throw new Error(`HTTP ${res.status}`);
                 return res.json();
             })
-            .then((data: LangfuseStats) => {
-                setStats(data);
+            .then((data: LangfuseStats & { not_configured?: boolean }) => {
+                // Stub returns not_configured=true until Langfuse is wired
+                if (data.not_configured) {
+                    setStats(null);
+                } else {
+                    setStats(data);
+                }
                 setLoading(false);
             })
             .catch((err) => {
@@ -130,13 +135,19 @@ export default function ValueReceipt() {
 
                 {loading && (
                     <div className="px-6 py-8 text-center text-[#9ca3af] font-mono text-[12px]">
-                        Fetching from Langfuse...
+                        Fetching stats...
+                    </div>
+                )}
+
+                {!loading && !error && !stats && (
+                    <div className="px-6 py-8 text-center text-[#9ca3af] font-mono text-[12px]">
+                        Langfuse not configured — stats will appear here once connected.
                     </div>
                 )}
 
                 {error && (
                     <div className="px-6 py-4 text-[12px] font-mono text-red-500 bg-red-50 border-b border-red-100">
-                        Could not load Langfuse stats: {error}. Is the backend running on port 8001?
+                        Could not load Langfuse stats: {error}. Is the backend running?
                     </div>
                 )}
 

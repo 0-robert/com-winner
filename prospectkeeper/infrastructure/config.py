@@ -19,9 +19,10 @@ class Config:
 
     # External APIs
     anthropic_api_key: str
-    langfuse_public_key: str
-    langfuse_secret_key: str
-    langfuse_base_url: str
+    # Langfuse observability — optional until wired in
+    langfuse_public_key: str = ""
+    langfuse_secret_key: str = ""
+    langfuse_base_url: str = ""
 
     # Agent settings
     batch_limit: int = 50
@@ -34,9 +35,6 @@ class Config:
             "SUPABASE_URL",
             "SUPABASE_SERVICE_KEY",
             "ANTHROPIC_API_KEY",
-            "LANGFUSE_PUBLIC_KEY",
-            "LANGFUSE_SECRET_KEY",
-            "LANGFUSE_BASE_URL",
         ]
         for key in required:
             if not os.getenv(key):
@@ -51,9 +49,9 @@ class Config:
             supabase_url=os.environ["SUPABASE_URL"],
             supabase_service_key=os.environ["SUPABASE_SERVICE_KEY"],
             anthropic_api_key=os.environ["ANTHROPIC_API_KEY"],
-            langfuse_public_key=os.environ["LANGFUSE_PUBLIC_KEY"],
-            langfuse_secret_key=os.environ["LANGFUSE_SECRET_KEY"],
-            langfuse_base_url=os.environ["LANGFUSE_BASE_URL"],
+            langfuse_public_key=os.getenv("LANGFUSE_PUBLIC_KEY", ""),
+            langfuse_secret_key=os.getenv("LANGFUSE_SECRET_KEY", ""),
+            langfuse_base_url=os.getenv("LANGFUSE_BASE_URL", ""),
             batch_limit=int(os.getenv("BATCH_LIMIT", "50")),
             batch_concurrency=int(os.getenv("BATCH_CONCURRENCY", "5")),
         )
