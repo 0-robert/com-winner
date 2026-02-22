@@ -5,19 +5,20 @@ import { Home, Sparkles, ClipboardList, BarChart2, Settings, Plus, Search, X } f
 import AllContacts from './components/AllContacts';
 import ReviewQueue from './components/ReviewQueue';
 import ValueReceipt from './components/ValueReceipt';
+import Dashboard from './components/Dashboard';
+import SettingsPage from './components/Settings';
 
 const mainMenu = [
-  { name: 'Dashboard', path: null, icon: <Home size={16} /> },
+  { name: 'Dashboard', path: '/dashboard', icon: <Home size={16} /> },
   { name: 'All Contacts', path: '/', icon: <ClipboardList size={16} /> },
   { name: 'Human Review', path: '/review', icon: <Sparkles size={16} />, badge: 'new' },
   { name: 'Value Receipt', path: '/receipt', icon: <BarChart2 size={16} /> },
-  { name: 'Settings', path: null, icon: <Settings size={16} /> },
+  { name: 'Settings', path: '/settings', icon: <Settings size={16} /> },
 ];
 
 const navBase = 'group flex items-center gap-2.5 px-3 py-2 rounded-md text-[13px] font-medium transition-colors duration-150 border';
 const navActive = 'bg-white text-[#0B0B0B] border-[#e5e7eb] shadow-sm';
 const navInactive = 'text-[#6B7280] hover:bg-[#f9fafb] hover:text-[#0B0B0B] border-transparent';
-const navDisabled = 'text-[#e5e7eb] border-transparent cursor-default';
 
 function App() {
   const [isAddModalOpen, setIsAddModalOpen] = useState(false);
@@ -92,37 +93,26 @@ function App() {
 
           {/* Nav */}
           <nav className="flex-1 px-3 py-4 space-y-0.5">
-            {mainMenu.map((item) =>
-              item.path ? (
-                <NavLink
-                  key={item.name}
-                  to={item.path}
-                  end={item.path === '/'}
-                  className={({ isActive }) =>
-                    `${navBase} ${isActive ? navActive : navInactive}`
-                  }
-                >
-                  <span className="text-current opacity-70 group-hover:opacity-100 transition-opacity shrink-0">
-                    {item.icon}
-                  </span>
-                  <span className="flex-1">{item.name}</span>
-                  {item.badge && (
-                    <span className="bg-orange-100 text-orange-600 text-[9px] uppercase font-bold px-1.5 py-0.5 rounded-full tracking-wide">
-                      {item.badge}
-                    </span>
-                  )}
-                </NavLink>
-              ) : (
-                <span
-                  key={item.name}
-                  className={`${navBase} ${navDisabled}`}
-                  title="Coming soon"
-                >
-                  <span className="opacity-50 shrink-0">{item.icon}</span>
-                  <span className="flex-1">{item.name}</span>
+            {mainMenu.map((item) => (
+              <NavLink
+                key={item.name}
+                to={item.path}
+                end={item.path === '/'}
+                className={({ isActive }) =>
+                  `${navBase} ${isActive ? navActive : navInactive}`
+                }
+              >
+                <span className="text-current opacity-70 group-hover:opacity-100 transition-opacity shrink-0">
+                  {item.icon}
                 </span>
-              )
-            )}
+                <span className="flex-1">{item.name}</span>
+                {item.badge && (
+                  <span className="bg-orange-100 text-orange-600 text-[9px] uppercase font-bold px-1.5 py-0.5 rounded-full tracking-wide">
+                    {item.badge}
+                  </span>
+                )}
+              </NavLink>
+            ))}
           </nav>
 
           {/* Background Sync widget */}
@@ -172,8 +162,10 @@ function App() {
 
             <Routes>
               <Route path="/" element={<AllContacts />} />
+              <Route path="/dashboard" element={<Dashboard />} />
               <Route path="/review" element={<ReviewQueue />} />
               <Route path="/receipt" element={<ValueReceipt />} />
+              <Route path="/settings" element={<SettingsPage />} />
             </Routes>
           </div>
         </main>
