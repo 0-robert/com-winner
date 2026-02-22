@@ -168,6 +168,7 @@ class ProcessInboundEmailUseCase:
             f"The contact replied with this email:\n"
             f"---\n{email_body}\n---\n\n"
             f"Extract any updated or corrected fields from their reply."
+            f"If they request to be removed, ignore everything else and set status to 'opted_out'."
         )
 
         try:
