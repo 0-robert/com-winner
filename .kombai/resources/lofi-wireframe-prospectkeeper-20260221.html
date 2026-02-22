@@ -1,1066 +1,1772 @@
-<!DOCTYPE html>
+<!doctype html>
 <html lang="en">
-<head>
-  <meta charset="UTF-8" />
-  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
-  <title>ProspectKeeper — Redesign Wireframe</title>
-  <style>
-    * { box-sizing: border-box; margin: 0; padding: 0; }
-    body {
-      font-family: 'Comic Sans MS', 'Chalkboard SE', cursive;
-      background: #f0f0f0;
-      color: #222;
-      font-size: 13px;
-    }
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>ProspectKeeper — Redesign Wireframe</title>
+    <style>
+      * {
+        box-sizing: border-box;
+        margin: 0;
+        padding: 0;
+      }
+      body {
+        font-family: "Comic Sans MS", "Chalkboard SE", cursive;
+        background: #f0f0f0;
+        color: #222;
+        font-size: 13px;
+      }
 
-    /* ── Legend ── */
-    .legend {
-      position: fixed;
-      top: 12px; right: 12px;
-      background: #fff;
-      border: 2px solid #333;
-      border-radius: 4px;
-      padding: 10px 14px;
-      font-family: Arial, sans-serif;
-      font-size: 11px;
-      z-index: 999;
-      line-height: 1.8;
-    }
-    .legend-row { display: flex; align-items: center; gap: 6px; }
-    .badge-green  { background:#4CAF50; color:#fff; padding:2px 6px; border-radius:3px; font-weight:bold; font-size:10px; }
-    .badge-orange { background:#FF9800; color:#fff; padding:2px 6px; border-radius:3px; font-weight:bold; font-size:10px; }
-    .badge-red    { background:#e53935; color:#fff; padding:2px 6px; border-radius:3px; font-weight:bold; font-size:10px; }
+      /* ── Legend ── */
+      .legend {
+        position: fixed;
+        top: 12px;
+        right: 12px;
+        background: #fff;
+        border: 2px solid #333;
+        border-radius: 4px;
+        padding: 10px 14px;
+        font-family: Arial, sans-serif;
+        font-size: 11px;
+        z-index: 999;
+        line-height: 1.8;
+      }
+      .legend-row {
+        display: flex;
+        align-items: center;
+        gap: 6px;
+      }
+      .badge-green {
+        background: #4caf50;
+        color: #fff;
+        padding: 2px 6px;
+        border-radius: 3px;
+        font-weight: bold;
+        font-size: 10px;
+      }
+      .badge-orange {
+        background: #ff9800;
+        color: #fff;
+        padding: 2px 6px;
+        border-radius: 3px;
+        font-weight: bold;
+        font-size: 10px;
+      }
+      .badge-red {
+        background: #e53935;
+        color: #fff;
+        padding: 2px 6px;
+        border-radius: 3px;
+        font-weight: bold;
+        font-size: 10px;
+      }
 
-    /* ── App Shell ── */
-    .app {
-      display: flex;
-      min-height: 100vh;
-      background: #e8e8e8;
-    }
+      /* ── App Shell ── */
+      .app {
+        display: flex;
+        min-height: 100vh;
+        background: #e8e8e8;
+      }
 
-    /* ── Sidebar ── */
-    .sidebar {
-      width: 240px;
-      min-height: 100vh;
-      background: #f9f9f9;
-      border-right: 2px solid #bbb;
-      display: flex;
-      flex-direction: column;
-      padding: 24px 14px 16px;
-      flex-shrink: 0;
-      position: relative;
-    }
-    .logo-area {
-      display: flex;
-      align-items: center;
-      gap: 10px;
-      margin-bottom: 28px;
-    }
-    .logo-box {
-      width: 32px; height: 32px;
-      border: 2px solid #333;
-      border-radius: 4px;
-      display: flex; align-items: center; justify-content: center;
-      font-weight: bold; font-size: 12px;
-      background: #ddd;
-    }
-    .logo-text .app-name { font-weight: bold; font-size: 14px; }
-    .logo-text .app-sub  { font-size: 10px; color: #666; text-transform: uppercase; letter-spacing: 0.08em; }
+      /* ── Sidebar ── */
+      .sidebar {
+        width: 240px;
+        min-height: 100vh;
+        background: #f9f9f9;
+        border-right: 2px solid #bbb;
+        display: flex;
+        flex-direction: column;
+        padding: 24px 14px 16px;
+        flex-shrink: 0;
+        position: relative;
+      }
+      .logo-area {
+        display: flex;
+        align-items: center;
+        gap: 10px;
+        margin-bottom: 28px;
+      }
+      .logo-box {
+        width: 32px;
+        height: 32px;
+        border: 2px solid #333;
+        border-radius: 4px;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        font-weight: bold;
+        font-size: 12px;
+        background: #ddd;
+      }
+      .logo-text .app-name {
+        font-weight: bold;
+        font-size: 14px;
+      }
+      .logo-text .app-sub {
+        font-size: 10px;
+        color: #666;
+        text-transform: uppercase;
+        letter-spacing: 0.08em;
+      }
 
-    .nav-label { font-size: 10px; color: #888; text-transform: uppercase; letter-spacing: 0.1em; margin-bottom: 6px; margin-left: 4px; }
-    .nav-item {
-      display: flex; align-items: center; gap: 10px;
-      padding: 8px 10px;
-      border-radius: 4px;
-      border: 1.5px solid transparent;
-      cursor: pointer;
-      margin-bottom: 2px;
-      transition: background 0.15s;
-    }
-    .nav-item.active {
-      background: #fff;
-      border-color: #aaa;
-      font-weight: bold;
-    }
-    .nav-item:not(.active):hover { background: #efefef; }
-    .nav-icon { width: 16px; height: 16px; border: 1.5px solid #888; border-radius: 2px; display:inline-block; }
-    .nav-badge {
-      margin-left: auto;
-      font-size: 9px;
-      background: #f5b942;
-      border-radius: 3px;
-      padding: 1px 5px;
-      font-weight: bold;
-      color: #7a4b00;
-      text-transform: uppercase;
-    }
+      .nav-label {
+        font-size: 10px;
+        color: #888;
+        text-transform: uppercase;
+        letter-spacing: 0.1em;
+        margin-bottom: 6px;
+        margin-left: 4px;
+      }
+      .nav-item {
+        display: flex;
+        align-items: center;
+        gap: 10px;
+        padding: 8px 10px;
+        border-radius: 4px;
+        border: 1.5px solid transparent;
+        cursor: pointer;
+        margin-bottom: 2px;
+        transition: background 0.15s;
+      }
+      .nav-item.active {
+        background: #fff;
+        border-color: #aaa;
+        font-weight: bold;
+      }
+      .nav-item:not(.active):hover {
+        background: #efefef;
+      }
+      .nav-icon {
+        width: 16px;
+        height: 16px;
+        border: 1.5px solid #888;
+        border-radius: 2px;
+        display: inline-block;
+      }
+      .nav-badge {
+        margin-left: auto;
+        font-size: 9px;
+        background: #f5b942;
+        border-radius: 3px;
+        padding: 1px 5px;
+        font-weight: bold;
+        color: #7a4b00;
+        text-transform: uppercase;
+      }
 
-    /* ─ Sync widget with pulse ─ */
-    .sync-widget {
-      margin-top: auto;
-      border: 1.5px dashed #aaa;
-      border-radius: 4px;
-      padding: 10px 12px;
-      background: #fff;
-      font-size: 11px;
-      position: relative;
-    }
-    .sync-title { font-weight: bold; font-size: 12px; margin-bottom: 4px; display:flex; align-items:center; gap:6px; }
-    .sync-dot {
-      width: 8px; height: 8px;
-      background: #555;
-      border-radius: 50%;
-      display: inline-block;
-      position: relative;
-    }
-    .sync-dot::after {
-      content: '';
-      position: absolute;
-      inset: -3px;
-      border-radius: 50%;
-      border: 1.5px solid #555;
-      animation: pulse 1.4s ease-out infinite;
-    }
-    @keyframes pulse {
-      0%   { transform: scale(0.85); opacity: 1; }
-      70%  { transform: scale(1.5);  opacity: 0; }
-      100% { transform: scale(0.85); opacity: 0; }
-    }
-    .sync-sub  { color: #777; font-size: 10px; }
-    .sync-time { font-size: 10px; color: #555; margin-top: 4px; border-top: 1px solid #eee; padding-top: 4px; }
-    .fix-badge {
-      position: absolute; top: -8px; right: 6px;
-      background: #e53935; color: #fff;
-      font-size: 9px;
-      padding: 2px 6px; border-radius: 3px; font-weight: bold;
-      font-family: Arial, sans-serif;
-    }
+      /* ─ Sync widget with pulse ─ */
+      .sync-widget {
+        margin-top: auto;
+        border: 1.5px dashed #aaa;
+        border-radius: 4px;
+        padding: 10px 12px;
+        background: #fff;
+        font-size: 11px;
+        position: relative;
+      }
+      .sync-title {
+        font-weight: bold;
+        font-size: 12px;
+        margin-bottom: 4px;
+        display: flex;
+        align-items: center;
+        gap: 6px;
+      }
+      .sync-dot {
+        width: 8px;
+        height: 8px;
+        background: #555;
+        border-radius: 50%;
+        display: inline-block;
+        position: relative;
+      }
+      .sync-dot::after {
+        content: "";
+        position: absolute;
+        inset: -3px;
+        border-radius: 50%;
+        border: 1.5px solid #555;
+        animation: pulse 1.4s ease-out infinite;
+      }
+      @keyframes pulse {
+        0% {
+          transform: scale(0.85);
+          opacity: 1;
+        }
+        70% {
+          transform: scale(1.5);
+          opacity: 0;
+        }
+        100% {
+          transform: scale(0.85);
+          opacity: 0;
+        }
+      }
+      .sync-sub {
+        color: #777;
+        font-size: 10px;
+      }
+      .sync-time {
+        font-size: 10px;
+        color: #555;
+        margin-top: 4px;
+        border-top: 1px solid #eee;
+        padding-top: 4px;
+      }
+      .fix-badge {
+        position: absolute;
+        top: -8px;
+        right: 6px;
+        background: #e53935;
+        color: #fff;
+        font-size: 9px;
+        padding: 2px 6px;
+        border-radius: 3px;
+        font-weight: bold;
+        font-family: Arial, sans-serif;
+      }
 
-    /* ── Main area ── */
-    .main {
-      flex: 1;
-      background: #e8e8e8;
-      min-height: 100vh;
-      padding: 20px 24px;
-      display: flex;
-      flex-direction: column;
-      gap: 16px;
-    }
+      /* ── Main area ── */
+      .main {
+        flex: 1;
+        background: #e8e8e8;
+        min-height: 100vh;
+        padding: 20px 24px;
+        display: flex;
+        flex-direction: column;
+        gap: 16px;
+      }
 
-    /* ── Topbar / header ── */
-    .topbar {
-      display: flex;
-      align-items: center;
-      justify-content: space-between;
-      background: #fff;
-      border: 1.5px solid #ccc;
-      border-radius: 4px;
-      padding: 10px 16px;
-      gap: 12px;
-      position: relative;
-    }
-    .search-area {
-      display: flex; align-items: center; gap: 8px;
-      flex: 1;
-    }
-    .search-icon { width: 16px; height: 16px; border: 1.5px solid #aaa; border-radius: 50%; display:inline-block; flex-shrink:0; }
-    .search-input {
-      flex: 1;
-      border: none;
-      border-bottom: 1.5px dashed #ccc;
-      background: transparent;
-      font-family: inherit;
-      font-size: 12px;
-      outline: none;
-      color: #555;
-      max-width: 280px;
-    }
-    .topbar-actions { display:flex; align-items:center; gap:8px; }
-    .btn-primary {
-      display: flex; align-items: center; gap: 6px;
-      background: #333; color: #fff;
-      border: 1.5px solid #222;
-      border-radius: 4px;
-      padding: 6px 12px;
-      font-family: inherit;
-      font-size: 11px;
-      font-weight: bold;
-      cursor: pointer;
-    }
-    .btn-primary:active { transform: scale(0.98); }
-    .avatar {
-      width: 32px; height: 32px;
-      border: 1.5px solid #aaa;
-      border-radius: 4px;
-      background: #ddd;
-      display: flex; align-items: center; justify-content: center;
-      font-weight: bold; font-size: 11px;
-    }
+      /* ── Topbar / header ── */
+      .topbar {
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        background: #fff;
+        border: 1.5px solid #ccc;
+        border-radius: 4px;
+        padding: 10px 16px;
+        gap: 12px;
+        position: relative;
+      }
+      .search-area {
+        display: flex;
+        align-items: center;
+        gap: 8px;
+        flex: 1;
+      }
+      .search-icon {
+        width: 16px;
+        height: 16px;
+        border: 1.5px solid #aaa;
+        border-radius: 50%;
+        display: inline-block;
+        flex-shrink: 0;
+      }
+      .search-input {
+        flex: 1;
+        border: none;
+        border-bottom: 1.5px dashed #ccc;
+        background: transparent;
+        font-family: inherit;
+        font-size: 12px;
+        outline: none;
+        color: #555;
+        max-width: 280px;
+      }
+      .topbar-actions {
+        display: flex;
+        align-items: center;
+        gap: 8px;
+      }
+      .btn-primary {
+        display: flex;
+        align-items: center;
+        gap: 6px;
+        background: #333;
+        color: #fff;
+        border: 1.5px solid #222;
+        border-radius: 4px;
+        padding: 6px 12px;
+        font-family: inherit;
+        font-size: 11px;
+        font-weight: bold;
+        cursor: pointer;
+      }
+      .btn-primary:active {
+        transform: scale(0.98);
+      }
+      .avatar {
+        width: 32px;
+        height: 32px;
+        border: 1.5px solid #aaa;
+        border-radius: 4px;
+        background: #ddd;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        font-weight: bold;
+        font-size: 11px;
+      }
 
-    /* ── Page header ── */
-    .page-header { padding-left: 2px; }
-    .page-title { font-size: 22px; font-weight: bold; margin-bottom: 4px; }
-    .page-sub {
-      display: flex; align-items: center; gap: 6px;
-      font-size: 10px; text-transform: uppercase; letter-spacing: 0.1em; color: #666;
-    }
-    .dot {
-      width: 7px; height: 7px;
-      border-radius: 50%; /* ← FIX: was missing in original */
-      background: #555;
-      display: inline-block;
-      flex-shrink: 0;
-    }
-    .dot.blue   { background: #4466cc; }
-    .dot.orange { background: #cc6622; }
-    .dot.green  { background: #33aa55; }
+      /* ── Page header ── */
+      .page-header {
+        padding-left: 2px;
+      }
+      .page-title {
+        font-size: 22px;
+        font-weight: bold;
+        margin-bottom: 4px;
+      }
+      .page-sub {
+        display: flex;
+        align-items: center;
+        gap: 6px;
+        font-size: 10px;
+        text-transform: uppercase;
+        letter-spacing: 0.1em;
+        color: #666;
+      }
+      .dot {
+        width: 7px;
+        height: 7px;
+        border-radius: 50%; /* ← FIX: was missing in original */
+        background: #555;
+        display: inline-block;
+        flex-shrink: 0;
+      }
+      .dot.blue {
+        background: #4466cc;
+      }
+      .dot.orange {
+        background: #cc6622;
+      }
+      .dot.green {
+        background: #33aa55;
+      }
 
-    /* ── Card ── */
-    .card {
-      background: #fff;
-      border: 1.5px solid #ccc;
-      border-radius: 4px;
-      overflow: hidden;
-    }
-    .card-inner { padding: 20px; }
+      /* ── Card ── */
+      .card {
+        background: #fff;
+        border: 1.5px solid #ccc;
+        border-radius: 4px;
+        overflow: hidden;
+      }
+      .card-inner {
+        padding: 20px;
+      }
 
-    /* ── Tabs bar ── */
-    .tabs-bar {
-      display: flex;
-      align-items: center;
-      justify-content: space-between;
-      border-bottom: 1.5px solid #ddd;
-      padding-bottom: 12px;
-      margin-bottom: 14px;
-      flex-wrap: wrap;
-      gap: 8px;
-    }
-    .tabs { display:flex; gap:6px; }
-    .tab {
-      padding: 5px 12px;
-      border: 1.5px solid #ccc;
-      border-radius: 4px;
-      font-family: inherit;
-      font-size: 11px;
-      font-weight: bold;
-      background: #f5f5f5;
-      cursor: pointer;
-      color: #555;
-    }
-    .tab.active {
-      background: #fff;
-      border-color: #444;
-      color: #222;
-    }
-    .tab-actions { display:flex; gap:6px; }
-    .btn-ghost {
-      padding: 5px 10px;
-      border: 1.5px solid #ccc;
-      border-radius: 4px;
-      font-family: inherit;
-      font-size: 11px;
-      font-weight: bold;
-      background: #f5f5f5;
-      cursor: pointer;
-      display:flex; align-items:center; gap:4px;
-    }
+      /* ── Tabs bar ── */
+      .tabs-bar {
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        border-bottom: 1.5px solid #ddd;
+        padding-bottom: 12px;
+        margin-bottom: 14px;
+        flex-wrap: wrap;
+        gap: 8px;
+      }
+      .tabs {
+        display: flex;
+        gap: 6px;
+      }
+      .tab {
+        padding: 5px 12px;
+        border: 1.5px solid #ccc;
+        border-radius: 4px;
+        font-family: inherit;
+        font-size: 11px;
+        font-weight: bold;
+        background: #f5f5f5;
+        cursor: pointer;
+        color: #555;
+      }
+      .tab.active {
+        background: #fff;
+        border-color: #444;
+        color: #222;
+      }
+      .tab-actions {
+        display: flex;
+        gap: 6px;
+      }
+      .btn-ghost {
+        padding: 5px 10px;
+        border: 1.5px solid #ccc;
+        border-radius: 4px;
+        font-family: inherit;
+        font-size: 11px;
+        font-weight: bold;
+        background: #f5f5f5;
+        cursor: pointer;
+        display: flex;
+        align-items: center;
+        gap: 4px;
+      }
 
-    /* ── Table ── */
-    .table-header {
-      display: grid;
-      grid-template-columns: 0.5fr 2.5fr 1.8fr 0.6fr 1.4fr 1.8fr 0.5fr;
-      padding: 6px 12px;
-      font-size: 10px;
-      color: #888;
-      text-transform: uppercase;
-      letter-spacing: 0.08em;
-      font-weight: bold;
-      border-bottom: 1.5px solid #ddd;
-    }
-    .table-rows { position: relative; }
-    .table-row {
-      display: grid;
-      grid-template-columns: 0.5fr 2.5fr 1.8fr 0.6fr 1.4fr 1.8fr 0.5fr;
-      padding: 10px 12px;
-      align-items: center;
-      border-bottom: 1px solid #f0f0f0;
-      border: 1.5px solid transparent;
-      border-radius: 3px;
-      transition: background 0.15s, border-color 0.15s;
-      cursor: default;
-      position: relative;
-    }
-    .table-row:hover { background: #f7f7f7; border-color: #ddd; }
+      /* ── Table ── */
+      .table-header {
+        display: grid;
+        grid-template-columns: 0.5fr 2.5fr 1.8fr 0.6fr 1.4fr 1.8fr 0.5fr;
+        padding: 6px 12px;
+        font-size: 10px;
+        color: #888;
+        text-transform: uppercase;
+        letter-spacing: 0.08em;
+        font-weight: bold;
+        border-bottom: 1.5px solid #ddd;
+      }
+      .table-rows {
+        position: relative;
+      }
+      .table-row {
+        display: grid;
+        grid-template-columns: 0.5fr 2.5fr 1.8fr 0.6fr 1.4fr 1.8fr 0.5fr;
+        padding: 10px 12px;
+        align-items: center;
+        border-bottom: 1px solid #f0f0f0;
+        border: 1.5px solid transparent;
+        border-radius: 3px;
+        transition:
+          background 0.15s,
+          border-color 0.15s;
+        cursor: default;
+        position: relative;
+      }
+      .table-row:hover {
+        background: #f7f7f7;
+        border-color: #ddd;
+      }
 
-    /* ── Skeleton rows ── */
-    .skeleton-row {
-      display: grid;
-      grid-template-columns: 0.5fr 2.5fr 1.8fr 0.6fr 1.4fr 1.8fr 0.5fr;
-      padding: 12px 12px;
-      border-bottom: 1px solid #f0f0f0;
-      align-items: center;
-      gap: 8px;
-    }
-    .skel {
-      height: 10px;
-      background: #e0e0e0;
-      border-radius: 3px;
-      animation: shimmer 1.4s infinite;
-    }
-    .skel.short { width: 60%; }
-    .skel.circle { width: 28px; height: 28px; border-radius: 50%; }
-    @keyframes shimmer {
-      0%   { opacity: 1; }
-      50%  { opacity: 0.5; }
-      100% { opacity: 1; }
-    }
+      /* ── Skeleton rows ── */
+      .skeleton-row {
+        display: grid;
+        grid-template-columns: 0.5fr 2.5fr 1.8fr 0.6fr 1.4fr 1.8fr 0.5fr;
+        padding: 12px 12px;
+        border-bottom: 1px solid #f0f0f0;
+        align-items: center;
+        gap: 8px;
+      }
+      .skel {
+        height: 10px;
+        background: #e0e0e0;
+        border-radius: 3px;
+        animation: shimmer 1.4s infinite;
+      }
+      .skel.short {
+        width: 60%;
+      }
+      .skel.circle {
+        width: 28px;
+        height: 28px;
+        border-radius: 50%;
+      }
+      @keyframes shimmer {
+        0% {
+          opacity: 1;
+        }
+        50% {
+          opacity: 0.5;
+        }
+        100% {
+          opacity: 1;
+        }
+      }
 
-    /* ── Avatar ── */
-    .av {
-      width: 28px; height: 28px;
-      background: #ddd;
-      border: 1.5px solid #bbb;
-      border-radius: 4px;
-      display: flex; align-items: center; justify-content: center;
-      font-size: 10px; font-weight: bold; color: #555;
-      flex-shrink: 0;
-    }
-    .client-cell { display:flex; align-items:center; gap:8px; }
-    .client-info .name { font-weight: bold; font-size: 12px; }
-    .client-info .email { font-size: 10px; color: #888; }
+      /* ── Avatar ── */
+      .av {
+        width: 28px;
+        height: 28px;
+        background: #ddd;
+        border: 1.5px solid #bbb;
+        border-radius: 4px;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        font-size: 10px;
+        font-weight: bold;
+        color: #555;
+        flex-shrink: 0;
+      }
+      .client-cell {
+        display: flex;
+        align-items: center;
+        gap: 8px;
+      }
+      .client-info .name {
+        font-weight: bold;
+        font-size: 12px;
+      }
+      .client-info .email {
+        font-size: 10px;
+        color: #888;
+      }
 
-    /* ── Badges ── */
-    .badge {
-      display: inline-flex; align-items: center; gap: 4px;
-      padding: 2px 7px;
-      border: 1.5px solid #ccc;
-      border-radius: 3px;
-      font-size: 10px;
-      font-weight: bold;
-      text-transform: uppercase;
-      letter-spacing: 0.06em;
-    }
-    .badge-unknown { background:#fff3e8; border-color:#dda060; color:#8a4a00; }
-    .badge-fresh   { background:#e8f5ec; border-color:#77bb88; color:#225533; }
-    .badge-never   { background:#f5f5f5; border-color:#bbb; color:#777; }
-    .badge-active  { background:#e8f5ec; border-color:#77bb88; color:#225533; }
-    .badge-dot { width:5px; height:5px; border-radius:50%; display:inline-block; }
-    .badge-dot.green  { background:#33aa55; }
-    .badge-dot.gray   { background:#aaa; }
+      /* ── Badges ── */
+      .badge {
+        display: inline-flex;
+        align-items: center;
+        gap: 4px;
+        padding: 2px 7px;
+        border: 1.5px solid #ccc;
+        border-radius: 3px;
+        font-size: 10px;
+        font-weight: bold;
+        text-transform: uppercase;
+        letter-spacing: 0.06em;
+      }
+      .badge-unknown {
+        background: #fff3e8;
+        border-color: #dda060;
+        color: #8a4a00;
+      }
+      .badge-fresh {
+        background: #e8f5ec;
+        border-color: #77bb88;
+        color: #225533;
+      }
+      .badge-never {
+        background: #f5f5f5;
+        border-color: #bbb;
+        color: #777;
+      }
+      .badge-active {
+        background: #e8f5ec;
+        border-color: #77bb88;
+        color: #225533;
+      }
+      .badge-dot {
+        width: 5px;
+        height: 5px;
+        border-radius: 50%;
+        display: inline-block;
+      }
+      .badge-dot.green {
+        background: #33aa55;
+      }
+      .badge-dot.gray {
+        background: #aaa;
+      }
 
-    /* ── Notes btn ── */
-    .icon-btn {
-      width: 26px; height: 26px;
-      border: 1.5px solid #ccc;
-      border-radius: 3px;
-      background: #fff;
-      display: flex; align-items: center; justify-content: center;
-      font-size: 12px;
-      cursor: pointer;
-    }
-    .icon-btn:hover { border-color: #888; }
-    .menu-btn {
-      background: none; border: none; cursor: pointer;
-      color: #999; font-size: 16px; padding: 2px 4px;
-      border-radius: 3px;
-    }
-    .menu-btn:hover { background:#eee; }
+      /* ── Notes btn ── */
+      .icon-btn {
+        width: 26px;
+        height: 26px;
+        border: 1.5px solid #ccc;
+        border-radius: 3px;
+        background: #fff;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        font-size: 12px;
+        cursor: pointer;
+      }
+      .icon-btn:hover {
+        border-color: #888;
+      }
+      .menu-btn {
+        background: none;
+        border: none;
+        cursor: pointer;
+        color: #999;
+        font-size: 16px;
+        padding: 2px 4px;
+        border-radius: 3px;
+      }
+      .menu-btn:hover {
+        background: #eee;
+      }
 
-    /* ── Checkbox ── */
-    .cb {
-      width: 13px; height: 13px;
-      border: 1.5px solid #bbb;
-      border-radius: 2px;
-      background: #fff;
-      flex-shrink: 0;
-    }
+      /* ── Checkbox ── */
+      .cb {
+        width: 13px;
+        height: 13px;
+        border: 1.5px solid #bbb;
+        border-radius: 2px;
+        background: #fff;
+        flex-shrink: 0;
+      }
 
-    /* ── Tooltip annotation ── */
-    .wf-note {
-      display: inline-block;
-      background: #fffde7;
-      border: 1.5px dashed #f0c040;
-      border-radius: 3px;
-      font-size: 10px;
-      font-family: Arial, sans-serif;
-      color: #555;
-      padding: 3px 8px;
-      margin-left: 4px;
-    }
+      /* ── Tooltip annotation ── */
+      .wf-note {
+        display: inline-block;
+        background: #fffde7;
+        border: 1.5px dashed #f0c040;
+        border-radius: 3px;
+        font-size: 10px;
+        font-family: Arial, sans-serif;
+        color: #555;
+        padding: 3px 8px;
+        margin-left: 4px;
+      }
 
-    /* ── Component badge (reuse / new / fix) ── */
-    .cb-reuse {
-      position: absolute; top: -8px; right: -4px;
-      background: #4CAF50; color:#fff;
-      font-size: 9px; font-family: Arial, sans-serif;
-      padding: 2px 5px; border-radius: 3px; font-weight: bold;
-      z-index: 10; white-space: nowrap;
-    }
-    .cb-new {
-      position: absolute; top: -8px; right: -4px;
-      background: #FF9800; color:#fff;
-      font-size: 9px; font-family: Arial, sans-serif;
-      padding: 2px 5px; border-radius: 3px; font-weight: bold;
-      z-index: 10; white-space: nowrap;
-    }
-    .cb-fix {
-      position: absolute; top: -8px; right: -4px;
-      background: #e53935; color:#fff;
-      font-size: 9px; font-family: Arial, sans-serif;
-      padding: 2px 5px; border-radius: 3px; font-weight: bold;
-      z-index: 10; white-space: nowrap;
-    }
-    .rel { position: relative; }
+      /* ── Component badge (reuse / new / fix) ── */
+      .cb-reuse {
+        position: absolute;
+        top: -8px;
+        right: -4px;
+        background: #4caf50;
+        color: #fff;
+        font-size: 9px;
+        font-family: Arial, sans-serif;
+        padding: 2px 5px;
+        border-radius: 3px;
+        font-weight: bold;
+        z-index: 10;
+        white-space: nowrap;
+      }
+      .cb-new {
+        position: absolute;
+        top: -8px;
+        right: -4px;
+        background: #ff9800;
+        color: #fff;
+        font-size: 9px;
+        font-family: Arial, sans-serif;
+        padding: 2px 5px;
+        border-radius: 3px;
+        font-weight: bold;
+        z-index: 10;
+        white-space: nowrap;
+      }
+      .cb-fix {
+        position: absolute;
+        top: -8px;
+        right: -4px;
+        background: #e53935;
+        color: #fff;
+        font-size: 9px;
+        font-family: Arial, sans-serif;
+        padding: 2px 5px;
+        border-radius: 3px;
+        font-weight: bold;
+        z-index: 10;
+        white-space: nowrap;
+      }
+      .rel {
+        position: relative;
+      }
 
-    /* ── Divider ── */
-    hr { border: none; border-top: 1px dashed #ccc; margin: 6px 0; }
+      /* ── Divider ── */
+      hr {
+        border: none;
+        border-top: 1px dashed #ccc;
+        margin: 6px 0;
+      }
 
-    /* ── Section title annotation ── */
-    .section-label {
-      font-family: Arial, sans-serif;
-      font-size: 10px;
-      color: #888;
-      text-transform: uppercase;
-      letter-spacing: 0.08em;
-      margin-bottom: 6px;
-      font-weight: bold;
-    }
+      /* ── Section title annotation ── */
+      .section-label {
+        font-family: Arial, sans-serif;
+        font-size: 10px;
+        color: #888;
+        text-transform: uppercase;
+        letter-spacing: 0.08em;
+        margin-bottom: 6px;
+        font-weight: bold;
+      }
 
-    /* ── Tabs switcher ── */
-    .page-tabs {
-      display: flex;
-      gap: 2px;
-      border-bottom: 2px solid #ccc;
-      margin-bottom: 20px;
-    }
-    .page-tab {
-      padding: 8px 18px;
-      font-family: inherit;
-      font-size: 12px;
-      font-weight: bold;
-      color: #777;
-      background: none;
-      border: none;
-      border-bottom: 2px solid transparent;
-      margin-bottom: -2px;
-      cursor: pointer;
-    }
-    .page-tab.active { color: #222; border-bottom-color: #333; }
+      /* ── Tabs switcher ── */
+      .page-tabs {
+        display: flex;
+        gap: 2px;
+        border-bottom: 2px solid #ccc;
+        margin-bottom: 20px;
+      }
+      .page-tab {
+        padding: 8px 18px;
+        font-family: inherit;
+        font-size: 12px;
+        font-weight: bold;
+        color: #777;
+        background: none;
+        border: none;
+        border-bottom: 2px solid transparent;
+        margin-bottom: -2px;
+        cursor: pointer;
+      }
+      .page-tab.active {
+        color: #222;
+        border-bottom-color: #333;
+      }
 
-    /* ── Value Receipt KPIs ── */
-    .kpi-row { display:grid; grid-template-columns: 1fr 1fr 1fr; gap:12px; margin-bottom:14px; }
-    .kpi-card {
-      background:#fff; border:1.5px solid #ccc; border-radius:4px;
-      padding:14px; text-align:center;
-    }
-    .kpi-num  { font-size:32px; font-weight:bold; }
-    .kpi-lbl  { font-size:9px; text-transform:uppercase; letter-spacing:0.08em; color:#888; margin-top:4px; }
+      /* ── Value Receipt KPIs ── */
+      .kpi-row {
+        display: grid;
+        grid-template-columns: 1fr 1fr 1fr;
+        gap: 12px;
+        margin-bottom: 14px;
+      }
+      .kpi-card {
+        background: #fff;
+        border: 1.5px solid #ccc;
+        border-radius: 4px;
+        padding: 14px;
+        text-align: center;
+      }
+      .kpi-num {
+        font-size: 32px;
+        font-weight: bold;
+      }
+      .kpi-lbl {
+        font-size: 9px;
+        text-transform: uppercase;
+        letter-spacing: 0.08em;
+        color: #888;
+        margin-top: 4px;
+      }
 
-    /* ── Hero ROI ── */
-    .hero-card {
-      display:flex; align-items:center; justify-content:space-between;
-      background:#fff; border:1.5px solid #ccc; border-radius:4px;
-      padding:20px 24px; margin-bottom:14px;
-    }
-    .roi-num { font-size:48px; font-weight:bold; }
-    .roi-sub { font-size:10px; text-transform:uppercase; color:#888; margin-bottom:6px; }
-    .roi-sub-cards { display:flex; gap:10px; }
-    .roi-sub-card {
-      background:#f5f5f5; border:1.5px solid #ddd; border-radius:4px;
-      padding:10px 14px; min-width:120px;
-    }
-    .roi-sub-lbl { font-size:9px; color:#777; text-transform:uppercase; margin-bottom:4px; display:flex; align-items:center; gap:4px; }
-    .roi-sub-val { font-size:18px; font-weight:bold; }
+      /* ── Hero ROI ── */
+      .hero-card {
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        background: #fff;
+        border: 1.5px solid #ccc;
+        border-radius: 4px;
+        padding: 20px 24px;
+        margin-bottom: 14px;
+      }
+      .roi-num {
+        font-size: 48px;
+        font-weight: bold;
+      }
+      .roi-sub {
+        font-size: 10px;
+        text-transform: uppercase;
+        color: #888;
+        margin-bottom: 6px;
+      }
+      .roi-sub-cards {
+        display: flex;
+        gap: 10px;
+      }
+      .roi-sub-card {
+        background: #f5f5f5;
+        border: 1.5px solid #ddd;
+        border-radius: 4px;
+        padding: 10px 14px;
+        min-width: 120px;
+      }
+      .roi-sub-lbl {
+        font-size: 9px;
+        color: #777;
+        text-transform: uppercase;
+        margin-bottom: 4px;
+        display: flex;
+        align-items: center;
+        gap: 4px;
+      }
+      .roi-sub-val {
+        font-size: 18px;
+        font-weight: bold;
+      }
 
-    /* ── Invoice table ── */
-    .inv-table { width:100%; border-collapse:collapse; font-size:12px; }
-    .inv-table thead th {
-      border-bottom: 1.5px solid #ddd;
-      padding: 8px 14px;
-      text-align:left;
-      font-size:10px; color:#888; text-transform:uppercase; letter-spacing:0.07em;
-    }
-    .inv-table thead th:not(:first-child) { text-align:right; }
-    .inv-table tbody td { padding: 10px 14px; border-bottom:1px solid #f0f0f0; }
-    .inv-table tbody td:not(:first-child) { text-align:right; font-size:11px; color:#666; }
-    .inv-table tbody tr:hover { background:#f7f7f7; }
+      /* ── Invoice table ── */
+      .inv-table {
+        width: 100%;
+        border-collapse: collapse;
+        font-size: 12px;
+      }
+      .inv-table thead th {
+        border-bottom: 1.5px solid #ddd;
+        padding: 8px 14px;
+        text-align: left;
+        font-size: 10px;
+        color: #888;
+        text-transform: uppercase;
+        letter-spacing: 0.07em;
+      }
+      .inv-table thead th:not(:first-child) {
+        text-align: right;
+      }
+      .inv-table tbody td {
+        padding: 10px 14px;
+        border-bottom: 1px solid #f0f0f0;
+      }
+      .inv-table tbody td:not(:first-child) {
+        text-align: right;
+        font-size: 11px;
+        color: #666;
+      }
+      .inv-table tbody tr:hover {
+        background: #f7f7f7;
+      }
 
-    /* ── Review Queue ── */
-    .queue-card {
-      border:1.5px solid #ccc; border-radius:4px; overflow:hidden;
-      margin-bottom:10px;
-    }
-    .queue-row {
-      display:flex; align-items:center; justify-content:space-between;
-      padding:12px 16px; background:#f9f9f9; cursor:pointer;
-    }
-    .queue-row.expanded { background:#fff; border-bottom:1.5px solid #ddd; }
-    .queue-row:hover { background:#f0f0f0; }
-    .queue-av {
-      width:36px; height:36px; background:#ddd; border:1.5px solid #bbb;
-      border-radius:4px; display:flex; align-items:center; justify-content:center;
-      font-size:12px; font-weight:bold; color:#555; position:relative; flex-shrink:0;
-    }
-    .queue-av .alert-pip {
-      position:absolute; top:-4px; right:-4px;
-      width:12px; height:12px; background:#fff; border-radius:50%;
-      display:flex; align-items:center; justify-content:center;
-      font-size:9px;
-    }
-    .queue-detail { display:grid; grid-template-columns:1fr 1fr; gap:16px; padding:16px; background:#f5f5f5; }
-    .detail-panel { background:#fff; border:1.5px solid #ddd; border-radius:4px; padding:12px; }
-    .detail-row { display:flex; justify-content:space-between; border-bottom:1px solid #eee; padding-bottom:6px; margin-bottom:6px; font-size:11px; }
-    .detail-row:last-child { border:none; margin:0; padding:0; }
-    .detail-key { color:#888; }
-    .detail-val { font-weight:bold; background:#eee; border-radius:2px; padding:1px 5px; }
-    .diag-panel {
-      background:#fff; border:1.5px solid #ddd; border-left:3px solid #aaa;
-      border-radius:4px; padding:12px; font-size:11px; color:#555; line-height:1.5;
-    }
-    .queue-actions { display:flex; justify-content:flex-end; gap:8px; padding-top:10px; }
-    .count-badge {
-      background:#ddd; border:1.5px solid #bbb; border-radius:10px;
-      font-size:10px; font-weight:bold; padding:1px 8px; color:#555;
-    }
+      /* ── Review Queue ── */
+      .queue-card {
+        border: 1.5px solid #ccc;
+        border-radius: 4px;
+        overflow: hidden;
+        margin-bottom: 10px;
+      }
+      .queue-row {
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        padding: 12px 16px;
+        background: #f9f9f9;
+        cursor: pointer;
+      }
+      .queue-row.expanded {
+        background: #fff;
+        border-bottom: 1.5px solid #ddd;
+      }
+      .queue-row:hover {
+        background: #f0f0f0;
+      }
+      .queue-av {
+        width: 36px;
+        height: 36px;
+        background: #ddd;
+        border: 1.5px solid #bbb;
+        border-radius: 4px;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        font-size: 12px;
+        font-weight: bold;
+        color: #555;
+        position: relative;
+        flex-shrink: 0;
+      }
+      .queue-av .alert-pip {
+        position: absolute;
+        top: -4px;
+        right: -4px;
+        width: 12px;
+        height: 12px;
+        background: #fff;
+        border-radius: 50%;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        font-size: 9px;
+      }
+      .queue-detail {
+        display: grid;
+        grid-template-columns: 1fr 1fr;
+        gap: 16px;
+        padding: 16px;
+        background: #f5f5f5;
+      }
+      .detail-panel {
+        background: #fff;
+        border: 1.5px solid #ddd;
+        border-radius: 4px;
+        padding: 12px;
+      }
+      .detail-row {
+        display: flex;
+        justify-content: space-between;
+        border-bottom: 1px solid #eee;
+        padding-bottom: 6px;
+        margin-bottom: 6px;
+        font-size: 11px;
+      }
+      .detail-row:last-child {
+        border: none;
+        margin: 0;
+        padding: 0;
+      }
+      .detail-key {
+        color: #888;
+      }
+      .detail-val {
+        font-weight: bold;
+        background: #eee;
+        border-radius: 2px;
+        padding: 1px 5px;
+      }
+      .diag-panel {
+        background: #fff;
+        border: 1.5px solid #ddd;
+        border-left: 3px solid #aaa;
+        border-radius: 4px;
+        padding: 12px;
+        font-size: 11px;
+        color: #555;
+        line-height: 1.5;
+      }
+      .queue-actions {
+        display: flex;
+        justify-content: flex-end;
+        gap: 8px;
+        padding-top: 10px;
+      }
+      .count-badge {
+        background: #ddd;
+        border: 1.5px solid #bbb;
+        border-radius: 10px;
+        font-size: 10px;
+        font-weight: bold;
+        padding: 1px 8px;
+        color: #555;
+      }
 
-    /* ── Wireframe label ── */
-    .wf-header {
-      background:#222; color:#fff;
-      font-family:Arial,sans-serif;
-      font-size:12px;
-      padding:8px 18px;
-      display:flex; align-items:center; gap:10px;
-    }
-    .wf-header strong { font-size:14px; }
-    .wf-header span { color:#aaa; }
+      /* ── Wireframe label ── */
+      .wf-header {
+        background: #222;
+        color: #fff;
+        font-family: Arial, sans-serif;
+        font-size: 12px;
+        padding: 8px 18px;
+        display: flex;
+        align-items: center;
+        gap: 10px;
+      }
+      .wf-header strong {
+        font-size: 14px;
+      }
+      .wf-header span {
+        color: #aaa;
+      }
 
-    /* ── Tabs for page switching ── */
-    .demo-tabs {
-      background:#e0e0e0;
-      display:flex; gap:2px;
-      padding:6px 8px 0;
-      border-bottom:2px solid #ccc;
-    }
-    .demo-tab {
-      padding:6px 16px;
-      background:#ccc; border:none; border-radius:3px 3px 0 0;
-      font-family:inherit; font-size:11px; font-weight:bold; cursor:pointer; color:#555;
-    }
-    .demo-tab.active { background:#fff; color:#222; }
+      /* ── Tabs for page switching ── */
+      .demo-tabs {
+        background: #e0e0e0;
+        display: flex;
+        gap: 2px;
+        padding: 6px 8px 0;
+        border-bottom: 2px solid #ccc;
+      }
+      .demo-tab {
+        padding: 6px 16px;
+        background: #ccc;
+        border: none;
+        border-radius: 3px 3px 0 0;
+        font-family: inherit;
+        font-size: 11px;
+        font-weight: bold;
+        cursor: pointer;
+        color: #555;
+      }
+      .demo-tab.active {
+        background: #fff;
+        color: #222;
+      }
 
-    .demo-page { display:none; }
-    .demo-page.active { display:flex; }
-  </style>
-</head>
-<body>
+      .demo-page {
+        display: none;
+      }
+      .demo-page.active {
+        display: flex;
+      }
+    </style>
+  </head>
+  <body>
+    <!-- ═══════════════════════════════════════ WIREFRAME HEADER -->
+    <div class="wf-header">
+      <strong>ProspectKeeper — Redesign Wireframe</strong>
+      <span>|</span>
+      <span>One redesign option · Grayscale lo-fi · Showing all 3 routes</span>
+    </div>
 
-<!-- ═══════════════════════════════════════ WIREFRAME HEADER -->
-<div class="wf-header">
-  <strong>ProspectKeeper — Redesign Wireframe</strong>
-  <span>|</span>
-  <span>One redesign option · Grayscale lo-fi · Showing all 3 routes</span>
-</div>
+    <!-- ══ Page switcher (simulates routing) -->
+    <div class="demo-tabs">
+      <button class="demo-tab active" onclick="showPage('contacts')">
+        / All Contacts
+      </button>
+      <button class="demo-tab" onclick="showPage('review')">/review</button>
+      <button class="demo-tab" onclick="showPage('receipt')">/receipt</button>
+    </div>
 
-<!-- ══ Page switcher (simulates routing) -->
-<div class="demo-tabs">
-  <button class="demo-tab active" onclick="showPage('contacts')">/ All Contacts</button>
-  <button class="demo-tab" onclick="showPage('review')">/review</button>
-  <button class="demo-tab" onclick="showPage('receipt')">/receipt</button>
-</div>
-
-<!-- ═══════════════════════════════════════ ALL CONTACTS -->
-<div class="demo-page active" id="page-contacts">
-  <div class="app">
-
-    <!-- SIDEBAR -->
-    <!-- NEW: added border-r, bg-f9f9f9 -->
-    <aside class="sidebar">
-      <div class="rel">
-        <span class="cb-fix" title="Fix: add border-r border-slate-200">[FIX] Sidebar boundary</span>
-      </div>
-
-      <!-- Logo -->
-      <div class="logo-area">
-        <!-- REUSABLE: Logo block from App.tsx -->
-        <div class="logo-box">PK</div>
-        <div class="logo-text">
-          <div class="app-name">ProspectKeeper</div>
-          <div class="app-sub">agentic-crm-v1</div>
-        </div>
-      </div>
-
-      <!-- Nav -->
-      <!-- REUSABLE: NavLink items from App.tsx -->
-      <div class="section-label">Menu</div>
-      <nav style="display:flex; flex-direction:column; gap:2px; margin-bottom:16px;">
-        <div class="nav-item"><span class="nav-icon"></span> Dashboard</div>
-        <div class="nav-item active"><span class="nav-icon"></span> All Contacts</div>
-        <div class="nav-item"><span class="nav-icon"></span> Human Review <span class="nav-badge">NEW</span></div>
-        <div class="nav-item"><span class="nav-icon"></span> Value Receipt</div>
-        <div class="nav-item"><span class="nav-icon"></span> Settings</div>
-      </nav>
-      <hr/>
-
-      <!-- Background Sync widget — with pulse + last-sync time -->
-      <!-- FIX: Add pulse animation + last-sync timestamp -->
-      <div class="sync-widget" style="margin-top:16px;">
-        <span class="fix-badge">[FIX] Add pulse + timestamp</span>
-        <div class="sync-title">
-          <span class="sync-dot"></span> Background Sync
-        </div>
-        <div class="sync-sub">Agentic workers are active.</div>
-        <div class="sync-time">Last sync: 3m ago</div>
-      </div>
-    </aside>
-
-    <!-- MAIN CONTENT -->
-    <main class="main">
-
-      <!-- TOPBAR -->
-      <!-- REUSABLE: Header from App.tsx -->
-      <div class="topbar rel">
-        <span class="cb-reuse" title="App.tsx header">[REUSE] Header</span>
-        <div class="search-area">
-          <span class="search-icon"></span>
-          <input class="search-input" placeholder="Search anything..." readonly />
-        </div>
-        <div class="topbar-actions">
-          <!-- FIX: Add active:scale-[0.98] to buttons -->
+    <!-- ═══════════════════════════════════════ ALL CONTACTS -->
+    <div class="demo-page active" id="page-contacts">
+      <div class="app">
+        <!-- SIDEBAR -->
+        <!-- NEW: added border-r, bg-f9f9f9 -->
+        <aside class="sidebar">
           <div class="rel">
-            <span class="cb-fix" title="Fix: add active:scale press state">[FIX] active state</span>
-            <button class="btn-primary">+ Add new contact</button>
+            <span class="cb-fix" title="Fix: add border-r border-slate-200"
+              >[FIX] Sidebar boundary</span
+            >
           </div>
-          <div class="avatar">RV</div>
-        </div>
-      </div>
 
-      <!-- PAGE HEADER -->
-      <!-- FIX: dot must have border-radius: 50% -->
-      <div class="page-header rel">
-        <span class="cb-fix" title="Fix: add rounded-full to dot span">[FIX] dot rounded-full</span>
-        <div class="page-title">Manage Contacts</div>
-        <div class="page-sub">
-          <span class="dot blue"></span> Agentic Database
-        </div>
-      </div>
+          <!-- Logo -->
+          <div class="logo-area">
+            <!-- REUSABLE: Logo block from App.tsx -->
+            <div class="logo-box">PK</div>
+            <div class="logo-text">
+              <div class="app-name">ProspectKeeper</div>
+              <div class="app-sub">agentic-crm-v1</div>
+            </div>
+          </div>
 
-      <!-- CONTACTS TABLE CARD -->
-      <!-- REUSABLE: AllContacts.tsx card shell -->
-      <div class="card rel">
-        <span class="cb-reuse" title="AllContacts.tsx">[REUSE] AllContacts</span>
-        <div class="card-inner">
+          <!-- Nav -->
+          <!-- REUSABLE: NavLink items from App.tsx -->
+          <div class="section-label">Menu</div>
+          <nav
+            style="
+              display: flex;
+              flex-direction: column;
+              gap: 2px;
+              margin-bottom: 16px;
+            "
+          >
+            <div class="nav-item"><span class="nav-icon"></span> Dashboard</div>
+            <div class="nav-item active">
+              <span class="nav-icon"></span> All Contacts
+            </div>
+            <div class="nav-item">
+              <span class="nav-icon"></span> Human Review
+              <span class="nav-badge">NEW</span>
+            </div>
+            <div class="nav-item">
+              <span class="nav-icon"></span> Value Receipt
+            </div>
+            <div class="nav-item"><span class="nav-icon"></span> Settings</div>
+          </nav>
+          <hr />
 
-          <!-- Tabs + actions -->
-          <div class="tabs-bar">
-            <div class="tabs">
-              <!-- FIX: Unified tab active style token across pages -->
+          <!-- Background Sync widget — with pulse + last-sync time -->
+          <!-- FIX: Add pulse animation + last-sync timestamp -->
+          <div class="sync-widget" style="margin-top: 16px">
+            <span class="fix-badge">[FIX] Add pulse + timestamp</span>
+            <div class="sync-title">
+              <span class="sync-dot"></span> Background Sync
+            </div>
+            <div class="sync-sub">Agentic workers are active.</div>
+            <div class="sync-time">Last sync: 3m ago</div>
+          </div>
+        </aside>
+
+        <!-- MAIN CONTENT -->
+        <main class="main">
+          <!-- TOPBAR -->
+          <!-- REUSABLE: Header from App.tsx -->
+          <div class="topbar rel">
+            <span class="cb-reuse" title="App.tsx header">[REUSE] Header</span>
+            <div class="search-area">
+              <span class="search-icon"></span>
+              <input
+                class="search-input"
+                placeholder="Search anything..."
+                readonly
+              />
+            </div>
+            <div class="topbar-actions">
+              <!-- FIX: Add active:scale-[0.98] to buttons -->
               <div class="rel">
-                <span class="cb-fix" title="Fix: unify active tab token">[FIX] tab token</span>
-                <button class="tab active">All Contacts</button>
+                <span class="cb-fix" title="Fix: add active:scale press state"
+                  >[FIX] active state</span
+                >
+                <button class="btn-primary">+ Add new contact</button>
               </div>
-              <button class="tab">Review Required</button>
-              <button class="tab">Departed</button>
-            </div>
-            <div class="tab-actions">
-              <button class="btn-ghost">↻ Refresh</button>
+              <div class="avatar">RV</div>
             </div>
           </div>
 
-          <!-- Table header -->
-          <div class="table-header">
-            <div></div>
-            <div>Client</div>
-            <div>Org / Role</div>
-            <div>Notes</div>
-            <div>Status</div>
-            <div>Freshness</div>
-            <div style="text-align:right">More</div>
-          </div>
-
-          <!-- SKELETON ROWS — shown during loading -->
-          <!-- NEW: LoadingSkeleton component -->
-          <div class="rel" style="border:1.5px dashed #e0e0e0; border-radius:4px; margin-bottom:8px;">
-            <span class="cb-new" title="New: LoadingSkeleton.tsx">[NEW] LoadingSkeleton</span>
-            <div class="section-label" style="padding:8px 12px 0; font-size:9px; color:#bbb;">Loading state (animate-pulse):</div>
-            <div class="skeleton-row">
-              <div class="skel circle"></div>
-              <div><div class="skel" style="width:70%; margin-bottom:5px;"></div><div class="skel short"></div></div>
-              <div><div class="skel" style="width:80%; margin-bottom:5px;"></div><div class="skel short"></div></div>
-              <div><div class="skel" style="width:24px; height:24px; border-radius:3px;"></div></div>
-              <div><div class="skel" style="width:70px; height:18px;"></div></div>
-              <div><div class="skel" style="width:60px; height:18px;"></div></div>
-              <div></div>
-            </div>
-            <div class="skeleton-row">
-              <div class="skel circle"></div>
-              <div><div class="skel" style="width:55%; margin-bottom:5px;"></div><div class="skel short"></div></div>
-              <div><div class="skel" style="width:65%; margin-bottom:5px;"></div><div class="skel short"></div></div>
-              <div><div class="skel" style="width:24px; height:24px; border-radius:3px;"></div></div>
-              <div><div class="skel" style="width:70px; height:18px;"></div></div>
-              <div><div class="skel" style="width:50px; height:18px;"></div></div>
-              <div></div>
+          <!-- PAGE HEADER -->
+          <!-- FIX: dot must have border-radius: 50% -->
+          <div class="page-header rel">
+            <span class="cb-fix" title="Fix: add rounded-full to dot span"
+              >[FIX] dot rounded-full</span
+            >
+            <div class="page-title">Manage Contacts</div>
+            <div class="page-sub">
+              <span class="dot blue"></span> Agentic Database
             </div>
           </div>
 
-          <!-- ACTUAL ROWS (loaded state) -->
-          <div class="table-rows">
-            <!-- FIX: move transition-colors to outer group wrapper -->
-            <div class="rel" style="margin-bottom:2px;">
-              <span class="cb-fix" style="top:4px; right:4px;" title="Fix: move hover to outer row wrapper">[FIX] row hover wrapper</span>
-              <div class="table-row">
-                <div class="cb"></div>
-                <div class="client-cell">
-                  <div class="av">RL</div>
-                  <div class="client-info">
-                    <div class="name">Robby Linson</div>
-                    <div class="email">robbylinson@gmail.com</div>
+          <!-- CONTACTS TABLE CARD -->
+          <!-- REUSABLE: AllContacts.tsx card shell -->
+          <div class="card rel">
+            <span class="cb-reuse" title="AllContacts.tsx"
+              >[REUSE] AllContacts</span
+            >
+            <div class="card-inner">
+              <!-- Tabs + actions -->
+              <div class="tabs-bar">
+                <div class="tabs">
+                  <!-- FIX: Unified tab active style token across pages -->
+                  <div class="rel">
+                    <span class="cb-fix" title="Fix: unify active tab token"
+                      >[FIX] tab token</span
+                    >
+                    <button class="tab active">All Contacts</button>
+                  </div>
+                  <button class="tab">Review Required</button>
+                  <button class="tab">Departed</button>
+                </div>
+                <div class="tab-actions">
+                  <button class="btn-ghost">↻ Refresh</button>
+                </div>
+              </div>
+
+              <!-- Table header -->
+              <div class="table-header">
+                <div></div>
+                <div>Client</div>
+                <div>Org / Role</div>
+                <div>Notes</div>
+                <div>Status</div>
+                <div>Freshness</div>
+                <div style="text-align: right">More</div>
+              </div>
+
+              <!-- SKELETON ROWS — shown during loading -->
+              <!-- NEW: LoadingSkeleton component -->
+              <div
+                class="rel"
+                style="
+                  border: 1.5px dashed #e0e0e0;
+                  border-radius: 4px;
+                  margin-bottom: 8px;
+                "
+              >
+                <span class="cb-new" title="New: LoadingSkeleton.tsx"
+                  >[NEW] LoadingSkeleton</span
+                >
+                <div
+                  class="section-label"
+                  style="padding: 8px 12px 0; font-size: 9px; color: #bbb"
+                >
+                  Loading state (animate-pulse):
+                </div>
+                <div class="skeleton-row">
+                  <div class="skel circle"></div>
+                  <div>
+                    <div
+                      class="skel"
+                      style="width: 70%; margin-bottom: 5px"
+                    ></div>
+                    <div class="skel short"></div>
+                  </div>
+                  <div>
+                    <div
+                      class="skel"
+                      style="width: 80%; margin-bottom: 5px"
+                    ></div>
+                    <div class="skel short"></div>
+                  </div>
+                  <div>
+                    <div
+                      class="skel"
+                      style="width: 24px; height: 24px; border-radius: 3px"
+                    ></div>
+                  </div>
+                  <div>
+                    <div class="skel" style="width: 70px; height: 18px"></div>
+                  </div>
+                  <div>
+                    <div class="skel" style="width: 60px; height: 18px"></div>
+                  </div>
+                  <div></div>
+                </div>
+                <div class="skeleton-row">
+                  <div class="skel circle"></div>
+                  <div>
+                    <div
+                      class="skel"
+                      style="width: 55%; margin-bottom: 5px"
+                    ></div>
+                    <div class="skel short"></div>
+                  </div>
+                  <div>
+                    <div
+                      class="skel"
+                      style="width: 65%; margin-bottom: 5px"
+                    ></div>
+                    <div class="skel short"></div>
+                  </div>
+                  <div>
+                    <div
+                      class="skel"
+                      style="width: 24px; height: 24px; border-radius: 3px"
+                    ></div>
+                  </div>
+                  <div>
+                    <div class="skel" style="width: 70px; height: 18px"></div>
+                  </div>
+                  <div>
+                    <div class="skel" style="width: 50px; height: 18px"></div>
+                  </div>
+                  <div></div>
+                </div>
+              </div>
+
+              <!-- ACTUAL ROWS (loaded state) -->
+              <div class="table-rows">
+                <!-- FIX: move transition-colors to outer group wrapper -->
+                <div class="rel" style="margin-bottom: 2px">
+                  <span
+                    class="cb-fix"
+                    style="top: 4px; right: 4px"
+                    title="Fix: move hover to outer row wrapper"
+                    >[FIX] row hover wrapper</span
+                  >
+                  <div class="table-row">
+                    <div class="cb"></div>
+                    <div class="client-cell">
+                      <div class="av">RL</div>
+                      <div class="client-info">
+                        <div class="name">Robby Linson</div>
+                        <div class="email">robbylinson@gmail.com</div>
+                      </div>
+                    </div>
+                    <div>
+                      <div style="font-weight: bold; font-size: 12px">
+                        Trinity College Dublin
+                      </div>
+                      <div style="font-size: 10px; color: #888">Student</div>
+                    </div>
+                    <div><button class="icon-btn">📄</button></div>
+                    <div><span class="badge badge-unknown">Unknown</span></div>
+                    <div>
+                      <span class="badge badge-never"
+                        ><span class="badge-dot gray"></span> Never</span
+                      >
+                    </div>
+                    <div style="text-align: right">
+                      <button class="menu-btn">⋮</button>
+                    </div>
                   </div>
                 </div>
-                <div>
-                  <div style="font-weight:bold; font-size:12px;">Trinity College Dublin</div>
-                  <div style="font-size:10px; color:#888;">Student</div>
+
+                <div class="table-row">
+                  <div class="cb"></div>
+                  <div class="client-cell">
+                    <div class="av">JD</div>
+                    <div class="client-info">
+                      <div class="name">Jane Doe</div>
+                      <div class="email">jane@example.com</div>
+                    </div>
+                  </div>
+                  <div>
+                    <div style="font-weight: bold; font-size: 12px">
+                      Acme Corp
+                    </div>
+                    <div style="font-size: 10px; color: #888">
+                      Director of Sales
+                    </div>
+                  </div>
+                  <div><button class="icon-btn">📄</button></div>
+                  <div><span class="badge badge-active">✓ Active</span></div>
+                  <div>
+                    <span class="badge badge-fresh"
+                      ><span class="badge-dot green"></span> Fresh</span
+                    >
+                  </div>
+                  <div style="text-align: right">
+                    <button class="menu-btn">⋮</button>
+                  </div>
                 </div>
-                <div><button class="icon-btn">📄</button></div>
-                <div><span class="badge badge-unknown">Unknown</span></div>
-                <div><span class="badge badge-never"><span class="badge-dot gray"></span> Never</span></div>
-                <div style="text-align:right"><button class="menu-btn">⋮</button></div>
+
+                <div
+                  class="table-row"
+                  style="background: #f7f7f7; border-color: #ddd"
+                >
+                  <!-- hover state demo -->
+                  <div class="cb"></div>
+                  <div class="client-cell">
+                    <div class="av">AP</div>
+                    <div class="client-info">
+                      <div class="name">Alex Pivovarov</div>
+                      <div class="email">157123jh@gmail.com</div>
+                    </div>
+                  </div>
+                  <div>
+                    <div style="font-weight: bold; font-size: 12px">
+                      Leeds University
+                    </div>
+                    <div style="font-size: 10px; color: #888">Student</div>
+                  </div>
+                  <div><button class="icon-btn">📄</button></div>
+                  <div><span class="badge badge-unknown">Unknown</span></div>
+                  <div>
+                    <span class="badge badge-fresh"
+                      ><span class="badge-dot green"></span> Fresh</span
+                    >
+                    <span class="wf-note">hover visible</span>
+                  </div>
+                  <div style="text-align: right">
+                    <button class="menu-btn">⋮</button>
+                  </div>
+                </div>
               </div>
             </div>
+          </div>
+          <!-- /card -->
+        </main>
+      </div>
+    </div>
+    <!-- /page-contacts -->
 
-            <div class="table-row">
-              <div class="cb"></div>
-              <div class="client-cell">
-                <div class="av">JD</div>
-                <div class="client-info">
-                  <div class="name">Jane Doe</div>
-                  <div class="email">jane@example.com</div>
-                </div>
-              </div>
-              <div>
-                <div style="font-weight:bold; font-size:12px;">Acme Corp</div>
-                <div style="font-size:10px; color:#888;">Director of Sales</div>
-              </div>
-              <div><button class="icon-btn">📄</button></div>
-              <div><span class="badge badge-active">✓ Active</span></div>
-              <div><span class="badge badge-fresh"><span class="badge-dot green"></span> Fresh</span></div>
-              <div style="text-align:right"><button class="menu-btn">⋮</button></div>
+    <!-- ═══════════════════════════════════════ REVIEW QUEUE -->
+    <div class="demo-page" id="page-review">
+      <div class="app">
+        <aside class="sidebar">
+          <div class="logo-area">
+            <div class="logo-box">PK</div>
+            <div class="logo-text">
+              <div class="app-name">ProspectKeeper</div>
+              <div class="app-sub">agentic-crm-v1</div>
             </div>
+          </div>
+          <div class="section-label">Menu</div>
+          <nav
+            style="
+              display: flex;
+              flex-direction: column;
+              gap: 2px;
+              margin-bottom: 16px;
+            "
+          >
+            <div class="nav-item"><span class="nav-icon"></span> Dashboard</div>
+            <div class="nav-item">
+              <span class="nav-icon"></span> All Contacts
+            </div>
+            <div class="nav-item active">
+              <span class="nav-icon"></span> Human Review
+              <span class="nav-badge">NEW</span>
+            </div>
+            <div class="nav-item">
+              <span class="nav-icon"></span> Value Receipt
+            </div>
+            <div class="nav-item"><span class="nav-icon"></span> Settings</div>
+          </nav>
+          <hr />
+          <div class="sync-widget" style="margin-top: 16px">
+            <div class="sync-title">
+              <span class="sync-dot"></span> Background Sync
+            </div>
+            <div class="sync-sub">Agentic workers are active.</div>
+            <div class="sync-time">Last sync: 3m ago</div>
+          </div>
+        </aside>
 
-            <div class="table-row" style="background:#f7f7f7; border-color:#ddd;">
-              <!-- hover state demo -->
-              <div class="cb"></div>
-              <div class="client-cell">
-                <div class="av">AP</div>
-                <div class="client-info">
-                  <div class="name">Alex Pivovarov</div>
-                  <div class="email">157123jh@gmail.com</div>
-                </div>
-              </div>
-              <div>
-                <div style="font-weight:bold; font-size:12px;">Leeds University</div>
-                <div style="font-size:10px; color:#888;">Student</div>
-              </div>
-              <div><button class="icon-btn">📄</button></div>
-              <div><span class="badge badge-unknown">Unknown</span></div>
-              <div>
-                <span class="badge badge-fresh"><span class="badge-dot green"></span> Fresh</span>
-                <span class="wf-note">hover visible</span>
-              </div>
-              <div style="text-align:right"><button class="menu-btn">⋮</button></div>
+        <main class="main">
+          <div class="topbar">
+            <div class="search-area">
+              <span class="search-icon"></span>
+              <input
+                class="search-input"
+                placeholder="Search anything..."
+                readonly
+              />
+            </div>
+            <div class="topbar-actions">
+              <button class="btn-primary">+ Add new contact</button>
+              <div class="avatar">RV</div>
             </div>
           </div>
 
-        </div>
-      </div><!-- /card -->
+          <!-- Page header -->
+          <div class="page-header rel">
+            <span class="cb-fix" title="Fix: rounded-full on dot"
+              >[FIX] dot rounded-full</span
+            >
+            <div class="page-title">Review Queue</div>
+            <div class="page-sub">
+              <span class="dot orange"></span>
+              Pending Manual Checks
+              <!-- NEW: count badge -->
+              <span class="count-badge rel" style="margin-left: 6px">
+                <span class="cb-new" style="top: -10px; right: -4px"
+                  >[NEW] CountBadge</span
+                >
+                3 pending
+              </span>
+            </div>
+          </div>
 
-    </main>
-  </div>
-</div><!-- /page-contacts -->
+          <div class="card">
+            <div class="card-inner">
+              <div
+                style="
+                  display: flex;
+                  align-items: center;
+                  gap: 10px;
+                  border-bottom: 1.5px solid #eee;
+                  padding-bottom: 12px;
+                  margin-bottom: 14px;
+                "
+              >
+                <div
+                  style="
+                    width: 28px;
+                    height: 28px;
+                    border: 1.5px solid #ccc;
+                    border-radius: 3px;
+                    background: #f5f5f5;
+                    display: flex;
+                    align-items: center;
+                    justify-content: center;
+                  "
+                >
+                  ✦
+                </div>
+                <div>
+                  <div style="font-weight: bold; font-size: 14px">
+                    Manual Verifications
+                  </div>
+                  <div style="font-size: 10px; color: #888">
+                    Agentic escalation queue
+                  </div>
+                </div>
+              </div>
 
+              <!-- Queue item (expanded) -->
+              <!-- REUSABLE: ReviewQueue accordion from ReviewQueue.tsx -->
+              <div class="queue-card rel">
+                <span class="cb-reuse" style="top: -8px; right: 4px"
+                  >[REUSE] ReviewQueue item</span
+                >
+                <div class="queue-row expanded">
+                  <div style="display: flex; align-items: center; gap: 12px">
+                    <div class="queue-av">
+                      TC
+                      <div class="alert-pip">⚠</div>
+                    </div>
+                    <div>
+                      <div style="font-weight: bold; font-size: 13px">
+                        Tom Cook
+                      </div>
+                      <div style="font-size: 11px; color: #888">Acme Corp</div>
+                    </div>
+                  </div>
+                  <div style="display: flex; align-items: center; gap: 10px">
+                    <span class="badge badge-unknown">Needs Review</span>
+                    <button
+                      class="icon-btn"
+                      style="font-size: 10px; width: auto; padding: 0 6px"
+                    >
+                      ▲
+                    </button>
+                  </div>
+                </div>
+                <div class="queue-detail">
+                  <div>
+                    <div class="section-label">Target Profile Document</div>
+                    <div class="detail-panel">
+                      <div class="detail-row">
+                        <span class="detail-key">Title Field</span
+                        ><span class="detail-val">Director</span>
+                      </div>
+                      <div class="detail-row">
+                        <span class="detail-key">Email</span
+                        ><span class="detail-val">tom@sysstate.com</span>
+                      </div>
+                      <div class="detail-row">
+                        <span class="detail-key">System State</span
+                        ><span class="detail-val">unknown</span>
+                      </div>
+                    </div>
+                  </div>
+                  <div>
+                    <div class="section-label">Agent Diagnostic</div>
+                    <div class="diag-panel">
+                      Agent conflict: 'Director of Engineering' found on
+                      LinkedIn, but email bounced. Manual verification required.
+                    </div>
+                    <div class="queue-actions">
+                      <button class="btn-ghost">Deactivate Data</button>
+                      <!-- FIX: unify button active state -->
+                      <button class="btn-primary">✓ Verify &amp; Update</button>
+                    </div>
+                  </div>
+                </div>
+              </div>
 
-<!-- ═══════════════════════════════════════ REVIEW QUEUE -->
-<div class="demo-page" id="page-review">
-  <div class="app">
+              <!-- Queue item (collapsed) -->
+              <div class="queue-card">
+                <div class="queue-row">
+                  <div style="display: flex; align-items: center; gap: 12px">
+                    <div class="queue-av">
+                      SC
+                      <div class="alert-pip">⚠</div>
+                    </div>
+                    <div>
+                      <div style="font-weight: bold; font-size: 13px">
+                        Sarah Chen
+                      </div>
+                      <div style="font-size: 11px; color: #888">
+                        Broadside Holdings
+                      </div>
+                    </div>
+                  </div>
+                  <div style="display: flex; align-items: center; gap: 10px">
+                    <span class="badge badge-unknown">Needs Review</span>
+                    <button
+                      class="icon-btn"
+                      style="font-size: 10px; width: auto; padding: 0 6px"
+                    >
+                      ▼
+                    </button>
+                  </div>
+                </div>
+              </div>
 
-    <aside class="sidebar">
-      <div class="logo-area">
-        <div class="logo-box">PK</div>
-        <div class="logo-text">
-          <div class="app-name">ProspectKeeper</div>
-          <div class="app-sub">agentic-crm-v1</div>
-        </div>
+              <div class="queue-card">
+                <div class="queue-row">
+                  <div style="display: flex; align-items: center; gap: 12px">
+                    <div class="queue-av">
+                      MJ
+                      <div class="alert-pip">⚠</div>
+                    </div>
+                    <div>
+                      <div style="font-weight: bold; font-size: 13px">
+                        Marcus Jones
+                      </div>
+                      <div style="font-size: 11px; color: #888">
+                        Summit School District
+                      </div>
+                    </div>
+                  </div>
+                  <div style="display: flex; align-items: center; gap: 10px">
+                    <span class="badge badge-unknown">Needs Review</span>
+                    <button
+                      class="icon-btn"
+                      style="font-size: 10px; width: auto; padding: 0 6px"
+                    >
+                      ▼
+                    </button>
+                  </div>
+                </div>
+              </div>
+            </div>
+          </div>
+        </main>
       </div>
-      <div class="section-label">Menu</div>
-      <nav style="display:flex; flex-direction:column; gap:2px; margin-bottom:16px;">
-        <div class="nav-item"><span class="nav-icon"></span> Dashboard</div>
-        <div class="nav-item"><span class="nav-icon"></span> All Contacts</div>
-        <div class="nav-item active"><span class="nav-icon"></span> Human Review <span class="nav-badge">NEW</span></div>
-        <div class="nav-item"><span class="nav-icon"></span> Value Receipt</div>
-        <div class="nav-item"><span class="nav-icon"></span> Settings</div>
-      </nav>
-      <hr/>
-      <div class="sync-widget" style="margin-top:16px;">
-        <div class="sync-title"><span class="sync-dot"></span> Background Sync</div>
-        <div class="sync-sub">Agentic workers are active.</div>
-        <div class="sync-time">Last sync: 3m ago</div>
-      </div>
-    </aside>
+    </div>
+    <!-- /page-review -->
 
-    <main class="main">
-      <div class="topbar">
-        <div class="search-area">
-          <span class="search-icon"></span>
-          <input class="search-input" placeholder="Search anything..." readonly />
-        </div>
-        <div class="topbar-actions">
-          <button class="btn-primary">+ Add new contact</button>
-          <div class="avatar">RV</div>
-        </div>
-      </div>
+    <!-- ═══════════════════════════════════════ VALUE RECEIPT -->
+    <div class="demo-page" id="page-receipt">
+      <div class="app">
+        <aside class="sidebar">
+          <div class="logo-area">
+            <div class="logo-box">PK</div>
+            <div class="logo-text">
+              <div class="app-name">ProspectKeeper</div>
+              <div class="app-sub">agentic-crm-v1</div>
+            </div>
+          </div>
+          <div class="section-label">Menu</div>
+          <nav
+            style="
+              display: flex;
+              flex-direction: column;
+              gap: 2px;
+              margin-bottom: 16px;
+            "
+          >
+            <div class="nav-item"><span class="nav-icon"></span> Dashboard</div>
+            <div class="nav-item">
+              <span class="nav-icon"></span> All Contacts
+            </div>
+            <div class="nav-item">
+              <span class="nav-icon"></span> Human Review
+              <span class="nav-badge">NEW</span>
+            </div>
+            <div class="nav-item active">
+              <span class="nav-icon"></span> Value Receipt
+            </div>
+            <div class="nav-item"><span class="nav-icon"></span> Settings</div>
+          </nav>
+          <hr />
+          <div class="sync-widget" style="margin-top: 16px">
+            <div class="sync-title">
+              <span class="sync-dot"></span> Background Sync
+            </div>
+            <div class="sync-sub">Agentic workers are active.</div>
+            <div class="sync-time">Last sync: 3m ago</div>
+          </div>
+        </aside>
 
-      <!-- Page header -->
-      <div class="page-header rel">
-        <span class="cb-fix" title="Fix: rounded-full on dot">[FIX] dot rounded-full</span>
-        <div class="page-title">Review Queue</div>
-        <div class="page-sub">
-          <span class="dot orange"></span>
-          Pending Manual Checks
-          <!-- NEW: count badge -->
-          <span class="count-badge rel" style="margin-left:6px;">
-            <span class="cb-new" style="top:-10px; right:-4px;">[NEW] CountBadge</span>
-            3 pending
-          </span>
-        </div>
-      </div>
+        <main class="main">
+          <div class="topbar">
+            <div class="search-area">
+              <span class="search-icon"></span>
+              <input
+                class="search-input"
+                placeholder="Search anything..."
+                readonly
+              />
+            </div>
+            <div class="topbar-actions">
+              <button class="btn-primary">+ Add new contact</button>
+              <div class="avatar">RV</div>
+            </div>
+          </div>
 
-      <div class="card">
-        <div class="card-inner">
-          <div style="display:flex; align-items:center; gap:10px; border-bottom:1.5px solid #eee; padding-bottom:12px; margin-bottom:14px;">
-            <div style="width:28px;height:28px;border:1.5px solid #ccc;border-radius:3px;background:#f5f5f5;display:flex;align-items:center;justify-content:center;">✦</div>
+          <div class="page-header rel">
+            <span class="cb-fix" title="Fix: rounded-full on dot"
+              >[FIX] dot rounded-full</span
+            >
+            <div class="page-title">Value Receipt</div>
+            <div class="page-sub">
+              <span class="dot green"></span> Outcome-Based ROI
+            </div>
+          </div>
+
+          <!-- Hero ROI card -->
+          <!-- REUSABLE: ValueReceipt.tsx hero section -->
+          <div class="hero-card rel">
+            <span class="cb-reuse" style="top: -8px; right: 4px"
+              >[REUSE] ROI hero block</span
+            >
             <div>
-              <div style="font-weight:bold; font-size:14px;">Manual Verifications</div>
-              <div style="font-size:10px; color:#888;">Agentic escalation queue</div>
+              <div class="roi-sub">Net ROI This Run</div>
+              <div class="roi-num">+7,100%</div>
             </div>
-          </div>
-
-          <!-- Queue item (expanded) -->
-          <!-- REUSABLE: ReviewQueue accordion from ReviewQueue.tsx -->
-          <div class="queue-card rel">
-            <span class="cb-reuse" style="top:-8px;right:4px;">[REUSE] ReviewQueue item</span>
-            <div class="queue-row expanded">
-              <div style="display:flex; align-items:center; gap:12px;">
-                <div class="queue-av">
-                  TC
-                  <div class="alert-pip">⚠</div>
-                </div>
-                <div>
-                  <div style="font-weight:bold; font-size:13px;">Tom Cook</div>
-                  <div style="font-size:11px; color:#888;">Acme Corp</div>
-                </div>
+            <div class="roi-sub-cards">
+              <div class="roi-sub-card">
+                <div class="roi-sub-lbl">💲 Value Gen</div>
+                <div class="roi-sub-val">$105.00</div>
               </div>
-              <div style="display:flex; align-items:center; gap:10px;">
-                <span class="badge badge-unknown">Needs Review</span>
-                <button class="icon-btn" style="font-size:10px; width:auto; padding:0 6px;">▲</button>
-              </div>
-            </div>
-            <div class="queue-detail">
-              <div>
-                <div class="section-label">Target Profile Document</div>
-                <div class="detail-panel">
-                  <div class="detail-row"><span class="detail-key">Title Field</span><span class="detail-val">Director</span></div>
-                  <div class="detail-row"><span class="detail-key">Email</span><span class="detail-val">tom@example.com</span></div>
-                  <div class="detail-row"><span class="detail-key">System State</span><span class="detail-val">unknown</span></div>
-                </div>
-              </div>
-              <div>
-                <div class="section-label">Agent Diagnostic</div>
-                <div class="diag-panel">
-                  Agent conflict: 'Director of Engineering' found on LinkedIn, but email bounced. Manual verification required.
-                </div>
-                <div class="queue-actions">
-                  <button class="btn-ghost">Deactivate Data</button>
-                  <!-- FIX: unify button active state -->
-                  <button class="btn-primary">✓ Verify &amp; Update</button>
+              <!-- FIX: widen card or use fewer decimal places to prevent "..." truncation -->
+              <div
+                class="roi-sub-card rel"
+                style="border: 1.5px dashed #e53935"
+              >
+                <span class="cb-fix" style="top: -8px; right: 4px"
+                  >[FIX] truncation</span
+                >
+                <div class="roi-sub-lbl">⚡ API Cost</div>
+                <div class="roi-sub-val">$1.46</div>
+                <div
+                  style="
+                    font-size: 9px;
+                    color: #aaa;
+                    font-family: Arial, sans-serif;
+                  "
+                >
+                  was "$1.4582" → truncated
                 </div>
               </div>
             </div>
           </div>
 
-          <!-- Queue item (collapsed) -->
-          <div class="queue-card">
-            <div class="queue-row">
-              <div style="display:flex;align-items:center;gap:12px;">
-                <div class="queue-av">SC<div class="alert-pip">⚠</div></div>
-                <div>
-                  <div style="font-weight:bold;font-size:13px;">Sarah Chen</div>
-                  <div style="font-size:11px;color:#888;">Broadside Holdings</div>
-                </div>
+          <!-- KPI cards -->
+          <!-- REUSABLE: KpiCard from ValueReceipt.tsx -->
+          <div class="kpi-row rel">
+            <span class="cb-reuse" style="top: -8px; right: 4px"
+              >[REUSE] KpiCard ×3</span
+            >
+            <div class="kpi-card">
+              <div class="kpi-num">1,250</div>
+              <div class="kpi-lbl">Rows Processed</div>
+            </div>
+            <div class="kpi-card" style="border-color: #888">
+              <!-- highlight: semantically driven by "best metric" -->
+              <div class="kpi-num">42</div>
+              <div class="kpi-lbl">Replacements Found</div>
+              <div
+                style="
+                  font-size: 9px;
+                  color: #aaa;
+                  font-family: Arial, sans-serif;
+                  margin-top: 4px;
+                "
+              >
+                ← highlight when highest impact metric
               </div>
-              <div style="display:flex;align-items:center;gap:10px;">
-                <span class="badge badge-unknown">Needs Review</span>
-                <button class="icon-btn" style="font-size:10px;width:auto;padding:0 6px;">▼</button>
-              </div>
+            </div>
+            <div class="kpi-card">
+              <div class="kpi-num">18</div>
+              <div class="kpi-lbl">Flagged for Review</div>
             </div>
           </div>
 
-          <div class="queue-card">
-            <div class="queue-row">
-              <div style="display:flex;align-items:center;gap:12px;">
-                <div class="queue-av">MJ<div class="alert-pip">⚠</div></div>
-                <div>
-                  <div style="font-weight:bold;font-size:13px;">Marcus Jones</div>
-                  <div style="font-size:11px;color:#888;">Summit School District</div>
-                </div>
+          <!-- Invoice table -->
+          <!-- FIX: TOTAL_USD: → "Amount Due" label -->
+          <div class="card rel">
+            <span class="cb-fix" style="top: -8px; right: 4px"
+              >[FIX] TOTAL_USD label</span
+            >
+            <div
+              style="
+                display: flex;
+                align-items: center;
+                justify-content: space-between;
+                padding: 12px 16px;
+                background: #f5f5f5;
+                border-bottom: 1.5px solid #ddd;
+              "
+            >
+              <div
+                style="
+                  font-weight: bold;
+                  font-size: 13px;
+                  display: flex;
+                  align-items: center;
+                  gap: 6px;
+                "
+              >
+                📄 Outcome-Based Invoice
               </div>
-              <div style="display:flex;align-items:center;gap:10px;">
-                <span class="badge badge-unknown">Needs Review</span>
-                <button class="icon-btn" style="font-size:10px;width:auto;padding:0 6px;">▼</button>
+              <div
+                style="
+                  font-size: 11px;
+                  font-weight: bold;
+                  background: #fff;
+                  border: 1.5px solid #ccc;
+                  border-radius: 3px;
+                  padding: 4px 10px;
+                "
+              >
+                Amount Due: $230.00
               </div>
             </div>
+            <table class="inv-table">
+              <thead>
+                <tr>
+                  <th>Service Request</th>
+                  <th>Qty</th>
+                  <th>Unit Price</th>
+                  <th>Total</th>
+                </tr>
+              </thead>
+              <tbody>
+                <tr>
+                  <td>Contact Verifications</td>
+                  <td>1,250</td>
+                  <td>$0.10</td>
+                  <td><strong>$125.00</strong></td>
+                </tr>
+                <tr>
+                  <td>Replacements Discovered</td>
+                  <td>42</td>
+                  <td>$2.50</td>
+                  <td><strong>$105.00</strong></td>
+                </tr>
+              </tbody>
+            </table>
           </div>
-
-        </div>
+        </main>
       </div>
-    </main>
-  </div>
-</div><!-- /page-review -->
+    </div>
+    <!-- /page-receipt -->
 
-
-<!-- ═══════════════════════════════════════ VALUE RECEIPT -->
-<div class="demo-page" id="page-receipt">
-  <div class="app">
-
-    <aside class="sidebar">
-      <div class="logo-area">
-        <div class="logo-box">PK</div>
-        <div class="logo-text">
-          <div class="app-name">ProspectKeeper</div>
-          <div class="app-sub">agentic-crm-v1</div>
-        </div>
+    <!-- ═══════════════════════════════════════ LEGEND -->
+    <div class="legend">
+      <strong style="font-family: Arial, sans-serif; font-size: 12px"
+        >Badge Legend</strong
+      ><br />
+      <div class="legend-row">
+        <span class="badge-green">[REUSE]</span> Existing component (keep)
       </div>
-      <div class="section-label">Menu</div>
-      <nav style="display:flex;flex-direction:column;gap:2px;margin-bottom:16px;">
-        <div class="nav-item"><span class="nav-icon"></span> Dashboard</div>
-        <div class="nav-item"><span class="nav-icon"></span> All Contacts</div>
-        <div class="nav-item"><span class="nav-icon"></span> Human Review <span class="nav-badge">NEW</span></div>
-        <div class="nav-item active"><span class="nav-icon"></span> Value Receipt</div>
-        <div class="nav-item"><span class="nav-icon"></span> Settings</div>
-      </nav>
-      <hr/>
-      <div class="sync-widget" style="margin-top:16px;">
-        <div class="sync-title"><span class="sync-dot"></span> Background Sync</div>
-        <div class="sync-sub">Agentic workers are active.</div>
-        <div class="sync-time">Last sync: 3m ago</div>
+      <div class="legend-row">
+        <span class="badge-orange">[NEW]</span> New component to create
       </div>
-    </aside>
-
-    <main class="main">
-      <div class="topbar">
-        <div class="search-area">
-          <span class="search-icon"></span>
-          <input class="search-input" placeholder="Search anything..." readonly />
-        </div>
-        <div class="topbar-actions">
-          <button class="btn-primary">+ Add new contact</button>
-          <div class="avatar">RV</div>
-        </div>
+      <div class="legend-row">
+        <span class="badge-red">[FIX]</span> Existing code that needs a fix
       </div>
+    </div>
 
-      <div class="page-header rel">
-        <span class="cb-fix" title="Fix: rounded-full on dot">[FIX] dot rounded-full</span>
-        <div class="page-title">Value Receipt</div>
-        <div class="page-sub"><span class="dot green"></span> Outcome-Based ROI</div>
-      </div>
-
-      <!-- Hero ROI card -->
-      <!-- REUSABLE: ValueReceipt.tsx hero section -->
-      <div class="hero-card rel">
-        <span class="cb-reuse" style="top:-8px;right:4px;">[REUSE] ROI hero block</span>
-        <div>
-          <div class="roi-sub">Net ROI This Run</div>
-          <div class="roi-num">+7,100%</div>
-        </div>
-        <div class="roi-sub-cards">
-          <div class="roi-sub-card">
-            <div class="roi-sub-lbl">💲 Value Gen</div>
-            <div class="roi-sub-val">$105.00</div>
-          </div>
-          <!-- FIX: widen card or use fewer decimal places to prevent "..." truncation -->
-          <div class="roi-sub-card rel" style="border:1.5px dashed #e53935;">
-            <span class="cb-fix" style="top:-8px;right:4px;">[FIX] truncation</span>
-            <div class="roi-sub-lbl">⚡ API Cost</div>
-            <div class="roi-sub-val">$1.46</div>
-            <div style="font-size:9px;color:#aaa;font-family:Arial,sans-serif;">was "$1.4582" → truncated</div>
-          </div>
-        </div>
-      </div>
-
-      <!-- KPI cards -->
-      <!-- REUSABLE: KpiCard from ValueReceipt.tsx -->
-      <div class="kpi-row rel">
-        <span class="cb-reuse" style="top:-8px;right:4px;">[REUSE] KpiCard ×3</span>
-        <div class="kpi-card">
-          <div class="kpi-num">1,250</div>
-          <div class="kpi-lbl">Rows Processed</div>
-        </div>
-        <div class="kpi-card" style="border-color:#888;">
-          <!-- highlight: semantically driven by "best metric" -->
-          <div class="kpi-num">42</div>
-          <div class="kpi-lbl">Replacements Found</div>
-          <div style="font-size:9px;color:#aaa;font-family:Arial,sans-serif;margin-top:4px;">← highlight when highest impact metric</div>
-        </div>
-        <div class="kpi-card">
-          <div class="kpi-num">18</div>
-          <div class="kpi-lbl">Flagged for Review</div>
-        </div>
-      </div>
-
-      <!-- Invoice table -->
-      <!-- FIX: TOTAL_USD: → "Amount Due" label -->
-      <div class="card rel">
-        <span class="cb-fix" style="top:-8px;right:4px;">[FIX] TOTAL_USD label</span>
-        <div style="display:flex;align-items:center;justify-content:space-between;padding:12px 16px;background:#f5f5f5;border-bottom:1.5px solid #ddd;">
-          <div style="font-weight:bold;font-size:13px;display:flex;align-items:center;gap:6px;">📄 Outcome-Based Invoice</div>
-          <div style="font-size:11px;font-weight:bold;background:#fff;border:1.5px solid #ccc;border-radius:3px;padding:4px 10px;">
-            Amount Due: $230.00
-          </div>
-        </div>
-        <table class="inv-table">
-          <thead>
-            <tr>
-              <th>Service Request</th>
-              <th>Qty</th>
-              <th>Unit Price</th>
-              <th>Total</th>
-            </tr>
-          </thead>
-          <tbody>
-            <tr><td>Contact Verifications</td><td>1,250</td><td>$0.10</td><td><strong>$125.00</strong></td></tr>
-            <tr><td>Replacements Discovered</td><td>42</td><td>$2.50</td><td><strong>$105.00</strong></td></tr>
-          </tbody>
-        </table>
-      </div>
-
-    </main>
-  </div>
-</div><!-- /page-receipt -->
-
-
-<!-- ═══════════════════════════════════════ LEGEND -->
-<div class="legend">
-  <strong style="font-family:Arial,sans-serif;font-size:12px;">Badge Legend</strong><br/>
-  <div class="legend-row"><span class="badge-green">[REUSE]</span> Existing component (keep)</div>
-  <div class="legend-row"><span class="badge-orange">[NEW]</span> New component to create</div>
-  <div class="legend-row"><span class="badge-red">[FIX]</span> Existing code that needs a fix</div>
-</div>
-
-<script>
-  function showPage(id) {
-    document.querySelectorAll('.demo-page').forEach(el => el.classList.remove('active'));
-    document.querySelectorAll('.demo-tab').forEach(el => el.classList.remove('active'));
-    document.getElementById('page-' + id).classList.add('active');
-    event.target.classList.add('active');
-  }
-</script>
-</body>
+    <script>
+      function showPage(id) {
+        document
+          .querySelectorAll(".demo-page")
+          .forEach((el) => el.classList.remove("active"));
+        document
+          .querySelectorAll(".demo-tab")
+          .forEach((el) => el.classList.remove("active"));
+        document.getElementById("page-" + id).classList.add("active");
+        event.target.classList.add("active");
+      }
+    </script>
+  </body>
 </html>
