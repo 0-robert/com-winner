@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useRef } from 'react';
 import { Users, CheckCircle, AlertCircle, RefreshCw, TrendingUp, Clock, Play, Loader2 } from 'lucide-react';
 import type { Contact } from '../types';
 
@@ -19,22 +19,81 @@ interface BatchReceipt {
     run_at: string;
 }
 
+interface ContactRow {
+    index: number;
+    name: string;
+    org: string;
+    title: string;
+    phase: 'running' | 'active' | 'inactive' | 'pending_confirmation' | 'flagged' | 'error' | 'unknown';
+    cost_usd?: number;
+    elapsed?: number;
+    error?: string;
+    replacement?: string | null;
+}
+
+interface BatchSummary {
+    batch_id: string;
+    processed: number;
+    active: number;
+    inactive: number;
+    replacements: number;
+    flagged: number;
+    errors: number;
+    total_cost_usd: number;
+    total_value_usd: number;
+    roi_pct: number;
+    elapsed: number;
+}
+
 const API_KEY = 'dev-key';
 
 function fmt(n: number, decimals = 0) {
     return n.toLocaleString('en-US', { maximumFractionDigits: decimals });
 }
 
+const STATUS_CONFIG: Record<string, { label: string; bg: string; text: string; border: string }> = {
+    active:               { label: 'ACTIVE',      bg: '#ecfdf5', text: '#10b981', border: '#a7f3d0' },
+    inactive:             { label: 'INACTIVE',    bg: '#fef2f2', text: '#ef4444', border: '#fecaca' },
+    pending_confirmation: { label: 'EMAIL SENT',  bg: '#fffbeb', text: '#92400e', border: '#fde68a' },
+    flagged:              { label: 'FLAGGED',     bg: '#f5f3ff', text: '#8b5cf6', border: '#ddd6fe' },
+    error:                { label: 'ERROR',       bg: '#fef2f2', text: '#dc2626', border: '#fecaca' },
+    unknown:              { label: 'UNKNOWN',     bg: '#f9fafb', text: '#6B7280', border: '#e5e7eb' },
+    running:              { label: 'RUNNING',     bg: '#f9fafb', text: '#6B7280', border: '#e5e7eb' },
+};
+
+function StatusBadge({ phase }: { phase: ContactRow['phase'] }) {
+    const cfg = STATUS_CONFIG[phase] ?? STATUS_CONFIG.unknown;
+    return (
+        <span
+            className="text-[10px] font-mono font-bold px-2 py-0.5 rounded border uppercase tracking-widest flex items-center gap-1 whitespace-nowrap"
+            style={{ background: cfg.bg, color: cfg.text, borderColor: cfg.border }}
+        >
+            {phase === 'running' && <Loader2 size={9} className="animate-spin" />}
+            {cfg.label}
+        </span>
+    );
+}
+
 export default function Dashboard() {
     const [contacts, setContacts] = useState<Contact[]>([]);
     const [receipts, setReceipts] = useState<BatchReceipt[]>([]);
     const [loading, setLoading] = useState(true);
+
+    // ── batch run form ─────────────────────────────────────────────────────
     const [limit, setLimit] = useState(50);
     const [concurrency, setConcurrency] = useState(5);
     const [tier, setTier] = useState<'free' | 'paid'>('free');
-    const [runStatus, setRunStatus] = useState<'idle' | 'starting' | 'started' | 'error'>('idle');
+
+    // ── streaming state ────────────────────────────────────────────────────
+    type Phase = 'idle' | 'streaming' | 'complete' | 'error';
+    const [phase, setPhase] = useState<Phase>('idle');
     const [runError, setRunError] = useState<string | null>(null);
-    const [runMeta, setRunMeta] = useState<{ batch_id: string; tier: string; limit: number } | null>(null);
+    const [streamBatchId, setStreamBatchId] = useState<string | null>(null);
+    const [streamTotal, setStreamTotal] = useState(0);
+    const [streamDone, setStreamDone] = useState(0);
+    const [contactRows, setContactRows] = useState<ContactRow[]>([]);
+    const [batchSummary, setBatchSummary] = useState<BatchSummary | null>(null);
+    const logRef = useRef<HTMLDivElement>(null);
 
     useEffect(() => {
         Promise.all([
@@ -46,30 +105,102 @@ export default function Dashboard() {
         }).catch(console.error).finally(() => setLoading(false));
     }, []);
 
+    // auto-scroll log to bottom on new rows
+    useEffect(() => {
+        if (logRef.current) {
+            logRef.current.scrollTop = logRef.current.scrollHeight;
+        }
+    }, [contactRows]);
+
     async function triggerRun() {
-        setRunStatus('starting');
+        setPhase('streaming');
         setRunError(null);
-        setRunMeta(null);
-        console.log('[Dashboard] Triggering batch run', { limit, concurrency, tier });
+        setContactRows([]);
+        setBatchSummary(null);
+        setStreamTotal(0);
+        setStreamDone(0);
+        setStreamBatchId(null);
+
+        function handleEvent(event: any) {
+            switch (event.type) {
+                case 'batch_start':
+                    setStreamBatchId(event.batch_id);
+                    setStreamTotal(event.total);
+                    break;
+                case 'contact_start':
+                    setContactRows(prev => [...prev, {
+                        index: event.index,
+                        name: event.name,
+                        org: event.org,
+                        title: event.title,
+                        phase: 'running',
+                    }]);
+                    break;
+                case 'contact_done':
+                    setStreamDone(d => d + 1);
+                    setContactRows(prev => prev.map(r =>
+                        r.index === event.index ? {
+                            ...r,
+                            phase: event.flagged ? 'flagged' : (event.status as ContactRow['phase']),
+                            cost_usd: event.cost_usd,
+                            elapsed: event.elapsed,
+                            replacement: event.has_replacement ? event.replacement_name : null,
+                        } : r
+                    ));
+                    break;
+                case 'contact_error':
+                    setStreamDone(d => d + 1);
+                    setContactRows(prev => prev.map(r =>
+                        r.index === event.index ? {
+                            ...r,
+                            phase: 'error',
+                            error: event.error,
+                            elapsed: event.elapsed,
+                        } : r
+                    ));
+                    break;
+                case 'batch_complete':
+                    setBatchSummary(event);
+                    setPhase('complete');
+                    break;
+                case 'error':
+                    setRunError(event.message);
+                    setPhase('error');
+                    break;
+            }
+        }
+
         try {
             const res = await fetch('/api/batch/run', {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json', 'X-API-Key': API_KEY },
                 body: JSON.stringify({ limit, concurrency, tier }),
             });
-            if (!res.ok) {
-                const body = await res.text();
-                console.error('[Dashboard] Batch run HTTP error', res.status, body);
-                throw new Error(body || `HTTP ${res.status}`);
+            if (!res.ok) throw new Error((await res.text()) || `HTTP ${res.status}`);
+
+            const reader = res.body!.getReader();
+            const decoder = new TextDecoder();
+            let buffer = '';
+
+            while (true) {
+                const { done, value } = await reader.read();
+                if (done) break;
+                buffer += decoder.decode(value, { stream: true });
+                const parts = buffer.split('\n\n');
+                buffer = parts.pop() ?? '';
+                for (const part of parts) {
+                    for (const line of part.split('\n')) {
+                        if (!line.startsWith('data: ')) continue;
+                        try { handleEvent(JSON.parse(line.slice(6))); } catch { /* skip malformed */ }
+                    }
+                }
             }
-            const data = await res.json();
-            console.log('[Dashboard] Batch run started:', data);
-            setRunMeta({ batch_id: data.batch_id, tier: data.tier, limit: data.limit });
-            setRunStatus('started');
+            setPhase(p => p === 'streaming' ? 'complete' : p);
         } catch (err: any) {
-            console.error('[Dashboard] triggerRun error:', err);
-            setRunStatus('error');
-            setRunError(err.message || 'Failed to start batch run.');
+            if (err.name !== 'AbortError') {
+                setRunError(err.message || 'Failed to run batch.');
+                setPhase('error');
+            }
         }
     }
 
@@ -96,6 +227,9 @@ export default function Dashboard() {
             </div>
         );
     }
+
+    const progressPct = streamTotal > 0 ? Math.round((streamDone / streamTotal) * 100) : 0;
+    const isRunning = phase === 'streaming';
 
     return (
         <div>
@@ -169,7 +303,6 @@ export default function Dashboard() {
                         </div>
                     ))}
                 </div>
-                {/* Bar */}
                 {total > 0 && (
                     <div className="flex h-2 rounded-full overflow-hidden gap-px">
                         {statusGroups.map(g => (
@@ -187,94 +320,172 @@ export default function Dashboard() {
             </div>
 
             {/* ── Run Agent ── */}
-            <div className="bg-white rounded border border-[#e5e7eb] p-6 shadow-sm mb-6">
-                <h2 className="text-[14px] font-bold text-[#0B0B0B] tracking-tight mb-4">Run Verification Agent</h2>
-                <div className="grid grid-cols-1 sm:grid-cols-3 gap-4 mb-4">
-                    <div>
-                        <label className="block text-[11px] font-mono font-bold text-[#6B7280] uppercase tracking-widest mb-1.5">Batch Limit</label>
-                        <div className="relative">
+            <div className="bg-white rounded border border-[#e5e7eb] shadow-sm mb-6 overflow-hidden">
+                {/* Header */}
+                <div className="px-6 py-4 border-b border-[#e5e7eb] flex items-center justify-between">
+                    <h2 className="text-[14px] font-bold text-[#0B0B0B] tracking-tight">Run Verification Agent</h2>
+                    {isRunning && streamTotal > 0 && (
+                        <span className="text-[11px] font-mono text-[#6B7280]">
+                            {streamDone} / {streamTotal} &nbsp;·&nbsp; {progressPct}%
+                        </span>
+                    )}
+                </div>
+
+                {/* Form */}
+                <div className="px-6 py-5">
+                    <div className="grid grid-cols-1 sm:grid-cols-3 gap-4 mb-4">
+                        <div>
+                            <label className="block text-[11px] font-mono font-bold text-[#6B7280] uppercase tracking-widest mb-1.5">Batch Limit</label>
                             <input
-                                type="number"
-                                min={1}
-                                max={500}
-                                value={limit}
+                                type="number" min={1} max={500} value={limit}
                                 onChange={e => setLimit(Number(e.target.value))}
-                                className="w-full border border-[#e5e7eb] rounded pl-3 pr-8 py-2 text-[13px] font-mono text-[#0B0B0B] focus:outline-none focus:border-[#0B0B0B] appearance-none"
+                                disabled={isRunning}
+                                className="w-full border border-[#e5e7eb] rounded px-3 py-2 text-[13px] font-mono text-[#0B0B0B] focus:outline-none focus:border-[#0B0B0B] disabled:opacity-50"
                             />
-                            <div className="absolute right-2 top-0 bottom-0 flex flex-col justify-center pointer-events-none text-[#9ca3af]">
-                                <svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><polyline points="18 15 12 9 6 15"></polyline></svg>
-                                <svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><polyline points="6 9 12 15 18 9"></polyline></svg>
-                            </div>
                         </div>
-                    </div>
-                    <div>
-                        <label className="block text-[11px] font-mono font-bold text-[#6B7280] uppercase tracking-widest mb-1.5">Concurrency</label>
-                        <div className="relative">
+                        <div>
+                            <label className="block text-[11px] font-mono font-bold text-[#6B7280] uppercase tracking-widest mb-1.5">Concurrency</label>
                             <input
-                                type="number"
-                                min={1}
-                                max={20}
-                                value={concurrency}
+                                type="number" min={1} max={20} value={concurrency}
                                 onChange={e => setConcurrency(Number(e.target.value))}
-                                className="w-full border border-[#e5e7eb] rounded pl-3 pr-8 py-2 text-[13px] font-mono text-[#0B0B0B] focus:outline-none focus:border-[#0B0B0B] appearance-none"
+                                disabled={isRunning}
+                                className="w-full border border-[#e5e7eb] rounded px-3 py-2 text-[13px] font-mono text-[#0B0B0B] focus:outline-none focus:border-[#0B0B0B] disabled:opacity-50"
                             />
-                            <div className="absolute right-2 top-0 bottom-0 flex flex-col justify-center pointer-events-none text-[#9ca3af]">
-                                <svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><polyline points="18 15 12 9 6 15"></polyline></svg>
-                                <svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><polyline points="6 9 12 15 18 9"></polyline></svg>
-                            </div>
                         </div>
-                    </div>
-                    <div>
-                        <label className="block text-[11px] font-mono font-bold text-[#6B7280] uppercase tracking-widest mb-1.5">Tier</label>
-                        <div className="relative border border-[#e5e7eb] rounded bg-[#f9fafb]">
+                        <div>
+                            <label className="block text-[11px] font-mono font-bold text-[#6B7280] uppercase tracking-widest mb-1.5">Tier</label>
                             <select
                                 value={tier}
                                 onChange={e => setTier(e.target.value as 'free' | 'paid')}
-                                className="w-full bg-transparent px-3 py-2 text-[13px] font-mono text-[#0B0B0B] focus:outline-none appearance-none"
+                                disabled={isRunning}
+                                className="w-full border border-[#e5e7eb] rounded px-3 py-2 text-[13px] font-mono text-[#0B0B0B] focus:outline-none focus:border-[#0B0B0B] bg-white disabled:opacity-50"
                             >
-                                <option value="free">Free (scrape only)</option>
+                                <option value="free">Free (email confirmation)</option>
                                 <option value="paid">Paid (Claude AI)</option>
                             </select>
-                            <div className="absolute right-3 top-0 bottom-0 flex items-center pointer-events-none text-[#0B0B0B]">
-                                <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M7 15l5 5 5-5" /><path d="M7 9l5-5 5 5" /></svg>
-                            </div>
                         </div>
                     </div>
-                </div>
-                <div className="flex flex-col gap-3">
-                    <div className="flex items-center gap-4">
+
+                    <div className="flex items-center gap-3">
                         <button
                             onClick={triggerRun}
-                            disabled={runStatus === 'starting' || runStatus === 'started'}
+                            disabled={isRunning}
                             className="flex items-center gap-2 px-5 py-2.5 bg-[#3DF577] border border-transparent rounded text-[12px] font-mono font-bold text-[#0B0B0B] hover:bg-[#34d366] transition-colors shadow-sm uppercase tracking-widest disabled:opacity-50 disabled:cursor-not-allowed"
                         >
-                            {runStatus === 'starting' ? <Loader2 size={14} className="animate-spin" /> : <Play size={14} />}
-                            {runStatus === 'starting' ? 'Starting…' : 'Run Agent'}
+                            {isRunning ? <Loader2 size={14} className="animate-spin" /> : <Play size={14} />}
+                            {isRunning ? 'Running…' : phase === 'complete' ? 'Run Again' : 'Run Agent'}
                         </button>
-                        {runStatus === 'error' && runError && (
+                        {phase === 'error' && runError && (
                             <span className="text-[11px] font-mono text-[#ef4444]">{runError}</span>
                         )}
                     </div>
-
-                    {runStatus === 'started' && runMeta && (
-                        <div className="flex items-start gap-3 bg-[#f9fafb] border border-[#e5e7eb] rounded px-4 py-3">
-                            <span className="mt-0.5 w-2 h-2 rounded-full bg-[#3DF577] animate-pulse flex-shrink-0" />
-                            <div>
-                                <p className="text-[12px] font-mono font-bold text-[#0B0B0B]">
-                                    Agent started — check Value Receipt for results.
-                                </p>
-                                <p className="text-[11px] font-mono text-[#6B7280] mt-0.5">
-                                    batch_id: <span className="select-all">{runMeta.batch_id}</span>
-                                    &nbsp;·&nbsp;tier: {runMeta.tier}
-                                    &nbsp;·&nbsp;up to {runMeta.limit} contacts
-                                </p>
-                                <p className="text-[10px] font-mono text-[#9ca3af] mt-1">
-                                    Running in background — watch your server logs for per-agent progress.
-                                </p>
-                            </div>
-                        </div>
-                    )}
                 </div>
+
+                {/* ── Live Activity Feed ── */}
+                {(isRunning || phase === 'complete' || phase === 'error') && (
+                    <div className="border-t border-[#e5e7eb]">
+                        {/* Progress bar */}
+                        {streamTotal > 0 && (
+                            <div className="h-1 bg-[#f3f4f6]">
+                                <div
+                                    className="h-full bg-[#3DF577] transition-all duration-500"
+                                    style={{ width: `${progressPct}%` }}
+                                />
+                            </div>
+                        )}
+
+                        {/* Feed header */}
+                        <div className="px-4 py-2.5 bg-[#f9fafb] border-b border-[#e5e7eb] flex items-center gap-2">
+                            {isRunning
+                                ? <><span className="w-1.5 h-1.5 rounded-full bg-[#10b981] animate-pulse flex-shrink-0" />
+                                    <span className="text-[11px] font-mono font-bold text-[#065f46] uppercase tracking-widest">Live Agent Activity</span></>
+                                : <><span className="w-1.5 h-1.5 rounded-full bg-[#9ca3af] flex-shrink-0" />
+                                    <span className="text-[11px] font-mono font-bold text-[#6B7280] uppercase tracking-widest">Run Complete</span></>
+                            }
+                            {streamBatchId && (
+                                <span className="ml-auto text-[10px] font-mono text-[#9ca3af] select-all">
+                                    batch: {streamBatchId.slice(0, 8)}…
+                                </span>
+                            )}
+                        </div>
+
+                        {/* Empty states */}
+                        {contactRows.length === 0 && isRunning && (
+                            <div className="px-4 py-8 text-center text-[11px] font-mono text-[#9ca3af] flex items-center justify-center gap-2">
+                                <Loader2 size={12} className="animate-spin" /> Loading contacts…
+                            </div>
+                        )}
+                        {contactRows.length === 0 && !isRunning && (
+                            <div className="px-4 py-8 text-center text-[11px] font-mono text-[#9ca3af]">
+                                No contacts were eligible for verification.
+                            </div>
+                        )}
+
+                        {/* Contact rows */}
+                        {contactRows.length > 0 && (
+                            <div ref={logRef} className="max-h-72 overflow-y-auto divide-y divide-[#f3f4f6]">
+                                {contactRows.map(row => (
+                                    <div key={row.index} className="px-4 py-2.5 flex items-start gap-3 hover:bg-[#fafafa]">
+                                        <span className="text-[10px] font-mono text-[#9ca3af] w-10 flex-shrink-0 pt-0.5 tabular-nums">
+                                            {String(row.index).padStart(2, '0')}/{String(streamTotal).padStart(2, '0')}
+                                        </span>
+
+                                        <div className="flex-1 min-w-0">
+                                            <div className="flex items-baseline gap-1.5 flex-wrap">
+                                                <span className="text-[12px] font-semibold text-[#0B0B0B]">{row.name}</span>
+                                                {row.title && <span className="text-[11px] font-mono text-[#9ca3af]">· {row.title}</span>}
+                                                <span className="text-[11px] font-mono text-[#6B7280]">@ {row.org}</span>
+                                            </div>
+                                            {row.replacement && (
+                                                <p className="text-[10px] font-mono text-[#8b5cf6] mt-0.5">
+                                                    ↳ Replacement: {row.replacement}
+                                                </p>
+                                            )}
+                                            {row.error && (
+                                                <p className="text-[10px] font-mono text-[#dc2626] mt-0.5 truncate" title={row.error}>
+                                                    ↳ {row.error}
+                                                </p>
+                                            )}
+                                        </div>
+
+                                        <div className="flex items-center gap-2 flex-shrink-0">
+                                            {row.elapsed != null && row.phase !== 'running' && (
+                                                <span className="text-[10px] font-mono text-[#9ca3af] tabular-nums">{row.elapsed}s</span>
+                                            )}
+                                            {row.cost_usd != null && row.cost_usd > 0 && (
+                                                <span className="text-[10px] font-mono text-[#9ca3af] tabular-nums">${row.cost_usd.toFixed(4)}</span>
+                                            )}
+                                            <StatusBadge phase={row.phase} />
+                                        </div>
+                                    </div>
+                                ))}
+                            </div>
+                        )}
+
+                        {/* Completion summary */}
+                        {batchSummary && (
+                            <div className="px-4 py-4 bg-[#f9fafb] border-t border-[#e5e7eb]">
+                                <div className="grid grid-cols-2 sm:grid-cols-4 gap-2 mb-3">
+                                    <SummaryCell label="Processed" value={String(batchSummary.processed)} />
+                                    <SummaryCell label="Active" value={String(batchSummary.active)} color="#10b981" />
+                                    <SummaryCell label="Inactive" value={String(batchSummary.inactive)} color="#ef4444" />
+                                    <SummaryCell label="Replacements" value={String(batchSummary.replacements)} color="#8b5cf6" />
+                                    <SummaryCell label="Flagged" value={String(batchSummary.flagged)} color="#f59e0b" />
+                                    <SummaryCell label="Errors" value={String(batchSummary.errors)} color={batchSummary.errors > 0 ? '#dc2626' : undefined} />
+                                    <SummaryCell label="API Cost" value={`$${batchSummary.total_cost_usd.toFixed(4)}`} />
+                                    <SummaryCell label="Elapsed" value={`${batchSummary.elapsed}s`} />
+                                </div>
+                                {batchSummary.processed > 0 && (
+                                    <p className="text-[10px] font-mono text-[#9ca3af]">
+                                        ROI: +{fmt(batchSummary.roi_pct)}% &nbsp;·&nbsp;
+                                        Value generated: ${batchSummary.total_value_usd.toFixed(2)} &nbsp;·&nbsp;
+                                        Refresh Value Receipt to see full breakdown.
+                                    </p>
+                                )}
+                            </div>
+                        )}
+                    </div>
+                )}
             </div>
 
             {/* ── Recent Batch Runs ── */}
@@ -321,6 +532,15 @@ export default function Dashboard() {
                     </div>
                 )}
             </div>
+        </div>
+    );
+}
+
+function SummaryCell({ label, value, color }: { label: string; value: string; color?: string }) {
+    return (
+        <div className="bg-white rounded border border-[#e5e7eb] px-3 py-2">
+            <p className="text-[10px] font-mono font-bold uppercase tracking-widest text-[#9ca3af] mb-0.5">{label}</p>
+            <p className="text-[14px] font-bold font-mono tabular-nums" style={{ color: color ?? '#0B0B0B' }}>{value}</p>
         </div>
     );
 }

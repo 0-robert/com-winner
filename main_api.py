@@ -611,48 +611,58 @@ async def contacts_for_review(_: None = Depends(_auth)):
     ]
 
 
-# ── Batch run trigger ─────────────────────────────────────────────────────────
+# ── Batch run trigger — streams SSE progress ─────────────────────────────────
 
 
 @app.post("/batch/run", tags=["batch"])
 async def trigger_batch(req: BatchRunRequest, _: None = Depends(_auth)):
-    """Trigger a background batch verification run."""
-    import uuid as _uuid
+    """
+    Stream real-time batch verification progress via Server-Sent Events.
+    Emits: batch_start, contact_start, contact_done, contact_error, batch_complete.
+    """
     from prospectkeeper.use_cases.process_batch import ProcessBatchRequest
 
-    batch_id = str(_uuid.uuid4())
+    batch_id = str(uuid.uuid4())
+    queue: asyncio.Queue = asyncio.Queue()
+
     logger.info(
-        f"[API] /batch/run triggered | batch_id={batch_id} "
+        f"[API] /batch/run SSE stream opened | batch_id={batch_id} "
         f"tier={req.tier!r} limit={req.limit} concurrency={req.concurrency}"
     )
 
     async def _run():
         try:
             c = get_container()
-            response = await c.process_batch_use_case.execute(
+            await c.process_batch_use_case.execute(
                 ProcessBatchRequest(
                     tier=req.tier,
                     limit=req.limit,
                     concurrency=req.concurrency,
                     batch_id=batch_id,
-                )
-            )
-            logger.info(
-                f"[API] Batch run finished | batch_id={batch_id} "
-                f"processed={response.receipt.contacts_processed} "
-                f"errors={len(response.errors)}"
+                ),
+                event_callback=queue.put,
             )
         except Exception as e:
-            logger.error(
-                f"[API] Batch run FAILED | batch_id={batch_id} | error={e!r}",
-                exc_info=True,
-            )
+            logger.error(f"[API] Batch run FAILED | batch_id={batch_id} | error={e!r}", exc_info=True)
+            await queue.put({"type": "error", "message": str(e)})
+        finally:
+            await queue.put(None)  # sentinel — closes the stream
 
     asyncio.create_task(_run())
-    return {
-        "status": "started",
-        "batch_id": batch_id,
-        "tier": req.tier,
-        "limit": req.limit,
-        "concurrency": req.concurrency,
-    }
+
+    async def event_stream():
+        while True:
+            event = await queue.get()
+            if event is None:
+                break
+            yield f"data: {json.dumps(event)}\n\n"
+
+    return StreamingResponse(
+        event_stream(),
+        media_type="text/event-stream",
+        headers={
+            "Cache-Control": "no-cache",
+            "Connection": "keep-alive",
+            "X-Accel-Buffering": "no",
+        },
+    )

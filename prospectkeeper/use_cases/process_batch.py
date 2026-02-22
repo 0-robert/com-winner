@@ -10,7 +10,7 @@ import logging
 import time
 import uuid
 from dataclasses import dataclass, field
-from typing import List, Optional
+from typing import Callable, List, Optional
 
 from ..domain.entities.contact import Contact, ContactStatus
 from ..domain.entities.agent_economics import AgentEconomics, ValueProofReceipt
@@ -59,9 +59,20 @@ class ProcessBatchUseCase:
         self.verify = verify_use_case
         self.roi = roi_use_case
 
-    async def execute(self, request: ProcessBatchRequest) -> ProcessBatchResponse:
+    async def execute(
+        self,
+        request: ProcessBatchRequest,
+        event_callback: Optional[Callable] = None,
+    ) -> ProcessBatchResponse:
         batch_id = request.batch_id
         wall_start = time.time()
+
+        async def emit(event: dict) -> None:
+            if event_callback:
+                try:
+                    await event_callback(event)
+                except Exception:
+                    pass  # never let stream errors kill the batch
 
         logger.info(_SEP)
         logger.info(f"[Batch:{batch_id[:8]}] *** BATCH RUN STARTING ***")
@@ -78,11 +89,23 @@ class ProcessBatchUseCase:
         total = len(contacts)
         logger.info(f"[Batch:{batch_id[:8]}] Loaded {total} contacts from database")
 
+        await emit({
+            "type": "batch_start",
+            "batch_id": batch_id,
+            "total": total,
+            "tier": request.tier,
+            "limit": request.limit,
+        })
+
         if total == 0:
             logger.warning(
                 f"[Batch:{batch_id[:8]}] No contacts eligible for verification — "
                 "check that contacts exist and none are opted-out or already flagged."
             )
+            await emit({
+                "type": "no_contacts",
+                "message": "No contacts eligible. Check that contacts exist and are not opted-out.",
+            })
 
         # ── Bounded concurrent verification ────────────────────────────────
         semaphore = asyncio.Semaphore(request.concurrency)
@@ -101,6 +124,15 @@ class ProcessBatchUseCase:
                     f"{contact.title!r} @ {contact.organization!r} | "
                     f"id={contact.id}"
                 )
+
+                await emit({
+                    "type": "contact_start",
+                    "index": idx + 1,
+                    "total": total,
+                    "name": contact.name,
+                    "org": contact.organization,
+                    "title": contact.title or "",
+                })
 
                 try:
                     result = await self.verify.execute(
@@ -130,6 +162,20 @@ class ProcessBatchUseCase:
                         f"elapsed={elapsed:.2f}s"
                     )
 
+                    await emit({
+                        "type": "contact_done",
+                        "index": done,
+                        "total": total,
+                        "name": contact.name,
+                        "org": contact.organization,
+                        "status": result.status.value,
+                        "cost_usd": result.economics.total_api_cost_usd,
+                        "elapsed": round(elapsed, 2),
+                        "has_replacement": result.has_replacement,
+                        "replacement_name": result.replacement_name,
+                        "flagged": result.needs_human_review,
+                    })
+
                 except Exception as exc:
                     elapsed = time.time() - agent_wall
                     async with count_lock:
@@ -144,6 +190,16 @@ class ProcessBatchUseCase:
                     )
                     errors.append(f"{contact.id} ({contact.name}): {exc}")
 
+                    await emit({
+                        "type": "contact_error",
+                        "index": done,
+                        "total": total,
+                        "name": contact.name,
+                        "org": contact.organization,
+                        "error": str(exc),
+                        "elapsed": round(elapsed, 2),
+                    })
+
         await asyncio.gather(*[verify_one(c, i) for i, c in enumerate(contacts)])
 
         # ── Generate Value-Proof Receipt ───────────────────────────────────
@@ -156,7 +212,7 @@ class ProcessBatchUseCase:
         )
         receipt = roi_response.receipt
 
-        # ── Persist receipt to database (was missing — now fixed) ──────────
+        # ── Persist receipt to database ────────────────────────────────────
         try:
             await self.repository.save_batch_receipt(receipt)
             logger.info(
@@ -184,6 +240,21 @@ class ProcessBatchUseCase:
             for err in errors:
                 logger.error(f"[Batch:{batch_id[:8]}]   {err}")
         logger.info(_SEP)
+
+        await emit({
+            "type": "batch_complete",
+            "batch_id": batch_id,
+            "processed": receipt.contacts_processed,
+            "active": receipt.contacts_verified_active,
+            "inactive": receipt.contacts_marked_inactive,
+            "replacements": receipt.replacements_found,
+            "flagged": receipt.flagged_for_review,
+            "errors": len(errors),
+            "total_cost_usd": receipt.total_api_cost_usd,
+            "total_value_usd": receipt.total_value_generated_usd,
+            "roi_pct": receipt.net_roi_percentage,
+            "elapsed": round(total_elapsed, 1),
+        })
 
         return ProcessBatchResponse(
             batch_id=batch_id,
