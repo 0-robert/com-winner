@@ -255,3 +255,16 @@ async def save_verification_result(result: VerificationResultSchema, x_api_key: 
     _require_api_key(x_api_key)
     await _adapter.save_verification_result(result.to_domain())
     return {"status": "success"}
+
+
+@app.get("/batch-receipts", tags=["Receipts"])
+async def get_batch_receipts(limit: int = 10, x_api_key: str = Header(...)):
+    _require_api_key(x_api_key)
+    response = (
+        _adapter.client.table("batch_receipts")
+        .select("*")
+        .order("run_at", desc=True)
+        .limit(limit)
+        .execute()
+    )
+    return response.data

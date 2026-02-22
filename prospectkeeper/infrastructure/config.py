@@ -19,9 +19,9 @@ class Config:
 
     # External APIs
     anthropic_api_key: str
-    # Langfuse observability — optional until wired in
-    langfuse_public_key: str = ""
-    langfuse_secret_key: str = ""
+    # Langfuse observability
+    langfuse_public_key: str
+    langfuse_secret_key: str
     langfuse_base_url: str = ""
 
     # Agent settings
@@ -35,6 +35,8 @@ class Config:
             "SUPABASE_URL",
             "SUPABASE_SERVICE_KEY",
             "ANTHROPIC_API_KEY",
+            "LANGFUSE_PUBLIC_KEY",
+            "LANGFUSE_SECRET_KEY",
         ]
         for key in required:
             if not os.getenv(key):

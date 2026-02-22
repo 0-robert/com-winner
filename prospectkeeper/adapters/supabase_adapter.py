@@ -5,6 +5,7 @@ Follows Supabase best practices: typed queries, RLS-aware, connection pooling vi
 """
 
 import logging
+import uuid
 from typing import List, Optional
 from datetime import datetime
 
@@ -12,6 +13,7 @@ from supabase import create_client, Client
 
 from ..domain.entities.contact import Contact, ContactStatus
 from ..domain.entities.verification_result import VerificationResult
+from ..domain.entities.agent_economics import ValueProofReceipt
 from ..domain.interfaces.i_data_repository import IDataRepository
 
 logger = logging.getLogger(__name__)
@@ -84,9 +86,8 @@ class SupabaseAdapter(IDataRepository):
         response = (
             self.client.table("contacts")
             .select("*")
-            .eq("status", "unknown")
+            .neq("status", "opted_out")
             .eq("needs_human_review", False)
-            .order("created_at")
             .limit(limit)
             .execute()
         )
@@ -190,6 +191,28 @@ class SupabaseAdapter(IDataRepository):
             return {r["contact_id"]: r for r in response.data}
         except Exception:
             return {}
+
+    async def save_batch_receipt(self, receipt: ValueProofReceipt) -> None:
+        """Persist the Value-Proof Receipt for a completed batch run."""
+        row = {
+            "id": str(uuid.uuid4()),
+            "batch_id": receipt.batch_id,
+            "contacts_processed": receipt.contacts_processed,
+            "contacts_verified_active": receipt.contacts_verified_active,
+            "contacts_marked_inactive": receipt.contacts_marked_inactive,
+            "replacements_found": receipt.replacements_found,
+            "flagged_for_review": receipt.flagged_for_review,
+            "total_api_cost_usd": receipt.total_api_cost_usd,
+            "total_tokens_used": receipt.total_tokens_used,
+            "total_labor_hours_saved": receipt.total_labor_hours_saved,
+            "total_value_generated_usd": receipt.total_value_generated_usd,
+            "simulated_invoice_usd": receipt.simulated_invoice_usd,
+            "net_roi_percentage": receipt.net_roi_percentage,
+            "run_at": receipt.run_at.isoformat(),
+        }
+        logger.info(f"[SupabaseAdapter] Saving batch receipt: batch_id={receipt.batch_id} processed={receipt.contacts_processed}")
+        self.client.table("batch_receipts").insert(row).execute()
+        logger.info(f"[SupabaseAdapter] Batch receipt saved OK")
 
     async def get_latest_change_summary(self, contact_id: str) -> Optional[dict]:
         """Return the most recent snapshot row where data actually changed."""
