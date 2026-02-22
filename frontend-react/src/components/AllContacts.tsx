@@ -35,7 +35,7 @@ function latestScrapeChangedData(contact: Contact): boolean {
   if (!contact.last_scraped_at || !contact.last_changed_at) return false;
   const diff = Math.abs(
     new Date(contact.last_scraped_at).getTime() -
-      new Date(contact.last_changed_at).getTime(),
+    new Date(contact.last_changed_at).getTime(),
   );
   return diff < 5 * 60 * 1000;
 }
@@ -372,23 +372,23 @@ export default function AllContacts() {
   return (
     <div>
       <div className="mb-6 pl-1">
-        <h1 className="text-[24px] font-bold text-slate-900 tracking-tight mb-1">
+        <h1 className="text-[32px] font-bold text-[#0B0B0B] tracking-tight mb-1 font-serif">
           Manage Contacts
         </h1>
-        <p className="text-[12px] font-mono text-slate-500 uppercase tracking-widest font-semibold flex items-center gap-2">
-          <span className="w-1.5 h-1.5 bg-blue-500 rounded-full inline-block"></span> Agentic Database
+        <p className="text-[12px] font-mono text-[#6B7280] uppercase tracking-widest font-semibold flex items-center gap-2">
+          <span className="w-1.5 h-1.5 bg-[#3DF577] rounded-full inline-block"></span> Agentic Database
         </p>
       </div>
 
-      <div className="bg-white rounded border border-slate-200 p-6 shadow-sm">
+      <div className="bg-white rounded border border-[#e5e7eb] p-6 shadow-sm">
         {/* Toolbar */}
-        <div className="flex items-center justify-between mb-6 pb-4 border-b border-slate-200">
+        <div className="flex items-center justify-between mb-6 pb-4 border-b border-[#e5e7eb]">
           <div className="flex gap-2">
             {tabs.map((tab) => (
               <button
                 key={tab}
                 onClick={() => setActiveTab(tab)}
-                className={`px-4 py-1.5 rounded text-[12px] font-bold transition-all border ${activeTab === tab ? "bg-white border-blue-600 text-blue-700 shadow-sm" : "bg-slate-50 border-slate-200 text-slate-500 hover:text-slate-800"}`}
+                className={`px-4 py-1.5 text-[12px] font-bold transition-all border-b-2 ${activeTab === tab ? "border-[#0B0B0B] text-[#0B0B0B]" : "border-transparent text-[#6B7280] hover:text-[#0B0B0B]"}`}
               >
                 {tab}
               </button>
@@ -398,7 +398,7 @@ export default function AllContacts() {
             <button
               onClick={sendEmailToAll}
               disabled={emailSendingAll}
-              className="px-4 py-1.5 bg-emerald-600 text-white rounded text-[12px] font-bold shadow-sm hover:bg-emerald-700 transition-colors flex items-center gap-2 disabled:opacity-50 disabled:cursor-not-allowed"
+              className="px-4 py-1.5 bg-white border border-[#e5e7eb] text-[#0B0B0B] rounded text-[12px] font-bold shadow-sm hover:bg-[#f9fafb] transition-colors flex items-center gap-2 disabled:opacity-50 disabled:cursor-not-allowed"
             >
               {emailSendingAll ? (
                 <Loader2 size={14} className="animate-spin" />
@@ -410,7 +410,7 @@ export default function AllContacts() {
             <button
               onClick={fetchContacts}
               disabled={loading}
-              className="px-4 py-1.5 bg-blue-600 text-white rounded text-[12px] font-bold shadow-sm hover:bg-blue-700 transition-colors flex items-center gap-2 disabled:opacity-60"
+              className="px-4 py-1.5 bg-[#0B0B0B] text-white rounded text-[12px] font-bold shadow-sm hover:bg-[#374151] transition-colors flex items-center gap-2 disabled:opacity-60"
             >
               <RefreshCw size={14} className={loading ? "animate-spin" : ""} />
               {loading ? "Loading..." : "Refresh Contacts"}
@@ -440,7 +440,7 @@ export default function AllContacts() {
         )}
 
         {/* Table Header */}
-        <div className="grid grid-cols-12 gap-4 px-4 pb-3 text-[11px] font-mono font-bold text-slate-500 uppercase tracking-widest border-b border-slate-100">
+        <div className="grid grid-cols-12 gap-4 px-4 pb-3 text-[11px] font-mono font-bold text-[#6B7280] uppercase tracking-widest border-b border-[#e5e7eb]">
           <div className="col-span-3">Client</div>
           <div className="col-span-2">Org / Role</div>
           <div className="col-span-1">Notes</div>
@@ -498,22 +498,22 @@ export default function AllContacts() {
             const detail = changeDetails[contact.id];
 
             return (
-              <div key={contact.id} className="group relative transition-colors duration-150 rounded border border-transparent hover:border-slate-100 hover:bg-slate-50/70">
-                <div className="grid grid-cols-12 gap-4 px-4 py-3 items-center rounded">
+              <div key={contact.id} className="group relative transition-colors duration-150 rounded border border-transparent hover:border-[#e5e7eb] hover:bg-[#f9fafb]">
+                <div className="grid grid-cols-12 gap-4 px-4 py-4 items-center rounded border-b border-[#e5e7eb] group-last:border-b-0 bg-white">
                   {/* Client */}
                   <div className="col-span-3 flex items-center gap-3">
-                    <div className="w-3.5 h-3.5 rounded-sm border border-slate-300 pointer-events-none group-hover:border-blue-400 bg-white flex-shrink-0"></div>
-                    <div className="w-8 h-8 rounded bg-slate-100 flex items-center justify-center text-slate-600 font-bold border border-slate-200 text-[11px] flex-shrink-0">
+                    <div className="w-3.5 h-3.5 rounded-sm border border-[#e5e7eb] pointer-events-none group-hover:border-[#3DF577] bg-white flex-shrink-0"></div>
+                    <div className="w-8 h-8 rounded bg-[#f9fafb] flex items-center justify-center text-[#0B0B0B] font-bold border border-[#e5e7eb] text-[11px] flex-shrink-0">
                       {contact.name
                         .split(" ")
                         .map((n: string) => n[0])
                         .join("")}
                     </div>
                     <div className="flex flex-col min-w-0">
-                      <span className="text-[13px] font-bold text-slate-900 truncate">
+                      <span className="text-[13px] font-bold text-[#0B0B0B] truncate">
                         {contact.name}
                       </span>
-                      <span className="text-[11px] font-mono text-slate-500 truncate">
+                      <span className="text-[11px] font-mono text-[#6B7280] truncate">
                         {contact.email}
                       </span>
                     </div>
@@ -521,10 +521,10 @@ export default function AllContacts() {
 
                   {/* Org / Role */}
                   <div className="col-span-2 flex flex-col justify-center min-w-0">
-                    <span className="text-[12px] font-bold text-slate-800 truncate">
+                    <span className="text-[12px] font-bold text-[#0B0B0B] truncate">
                       {contact.organization}
                     </span>
-                    <span className="text-[11px] font-mono text-slate-500 truncate">
+                    <span className="text-[11px] font-mono text-[#6B7280] truncate">
                       {contact.title || "Unknown Role"}
                     </span>
                   </div>
@@ -803,20 +803,20 @@ export default function AllContacts() {
                         prev.map((c) =>
                           c.id === selectedMoreContact.id
                             ? {
-                                ...c,
-                                title: data.current_title || c.title,
-                                organization:
-                                  data.current_organization || c.organization,
-                                status: data.still_at_organization
-                                  ? "active"
-                                  : "unknown",
-                                needs_human_review: !data.still_at_organization,
-                                experience: data.experience,
-                                education: data.education,
-                                skills: data.skills,
-                                employment_confidence:
-                                  data.employment_confidence,
-                              }
+                              ...c,
+                              title: data.current_title || c.title,
+                              organization:
+                                data.current_organization || c.organization,
+                              status: data.still_at_organization
+                                ? "active"
+                                : "unknown",
+                              needs_human_review: !data.still_at_organization,
+                              experience: data.experience,
+                              education: data.education,
+                              skills: data.skills,
+                              employment_confidence:
+                                data.employment_confidence,
+                            }
                             : c,
                         ),
                       );
@@ -943,7 +943,7 @@ export default function AllContacts() {
                     </div>
                     <div className="divide-y divide-slate-100">
                       {selectedProfileContact.experience &&
-                      selectedProfileContact.experience.length > 0 ? (
+                        selectedProfileContact.experience.length > 0 ? (
                         selectedProfileContact.experience.map((exp, idx) => (
                           <div
                             key={idx}
@@ -994,7 +994,7 @@ export default function AllContacts() {
                     </div>
                     <div className="divide-y divide-slate-100">
                       {selectedProfileContact.education &&
-                      selectedProfileContact.education.length > 0 ? (
+                        selectedProfileContact.education.length > 0 ? (
                         selectedProfileContact.education.map((edu, idx) => (
                           <div key={idx} className="p-4">
                             <h5 className="text-[13px] font-bold text-slate-900">
@@ -1025,7 +1025,7 @@ export default function AllContacts() {
                     </h4>
                     <div className="flex flex-wrap gap-2">
                       {selectedProfileContact.skills &&
-                      selectedProfileContact.skills.length > 0 ? (
+                        selectedProfileContact.skills.length > 0 ? (
                         selectedProfileContact.skills.map((skill, idx) => (
                           <span
                             key={idx}

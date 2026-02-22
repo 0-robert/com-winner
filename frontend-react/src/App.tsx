@@ -15,9 +15,9 @@ const mainMenu = [
 ];
 
 const navBase = 'group flex items-center gap-2.5 px-3 py-2 rounded-md text-[13px] font-medium transition-colors duration-150 border';
-const navActive = 'bg-slate-100 text-slate-900 border-slate-200/80 shadow-xs';
-const navInactive = 'text-slate-500 hover:bg-slate-100/70 hover:text-slate-800 border-transparent';
-const navDisabled = 'text-slate-400 border-transparent cursor-default';
+const navActive = 'bg-white text-[#0B0B0B] border-[#e5e7eb] shadow-sm';
+const navInactive = 'text-[#6B7280] hover:bg-[#f9fafb] hover:text-[#0B0B0B] border-transparent';
+const navDisabled = 'text-[#e5e7eb] border-transparent cursor-default';
 
 function App() {
   const [isAddModalOpen, setIsAddModalOpen] = useState(false);
@@ -78,20 +78,20 @@ function App() {
 
   return (
     <Router>
-      <div className="flex min-h-screen bg-[#f1f4f9] text-slate-800 font-sans selection:bg-blue-100 selection:text-blue-900">
+      <div className="flex min-h-screen bg-white text-[#0B0B0B] font-sans selection:bg-[#3DF577]/20 selection:text-[#0B0B0B]">
 
         {/* ── Sidebar ─────────────────────────────────────────────────── */}
-        <aside className="w-[232px] bg-white border-r border-slate-200 flex flex-col flex-shrink-0 h-screen sticky top-0 overflow-y-auto">
+        <aside className="w-[232px] bg-white border-r border-[#e5e7eb] flex flex-col flex-shrink-0 h-screen sticky top-0 overflow-y-auto">
 
           {/* Logo */}
-          <div className="flex items-center gap-3 px-4 pt-6 pb-5 border-b border-slate-100">
+          <div className="flex items-center gap-3 px-4 pt-6 pb-5 border-b border-[#e5e7eb]">
             <Link to="/" className="flex items-center gap-3 group">
-              <div className="w-7 h-7 rounded-md bg-blue-600 flex items-center justify-center text-white font-bold text-[11px] shadow-sm border border-blue-700/50 shrink-0">
-                <span className="font-mono tracking-tight">PK</span>
+              <div className="w-7 h-7 rounded-md bg-[#0B0B0B] flex items-center justify-center text-white font-bold text-[11px] shadow-sm shrink-0">
+                <span className="font-mono tracking-tight text-white">PK</span>
               </div>
               <div>
-                <h2 className="text-[14px] font-bold text-slate-900 tracking-tight leading-tight">ProspectKeeper</h2>
-                <p className="text-[10px] font-mono text-slate-400 tracking-tight uppercase">agentic-crm-v1</p>
+                <h2 className="text-[14px] font-bold text-[#0B0B0B] tracking-tight leading-tight">ProspectKeeper</h2>
+                <p className="text-[10px] font-mono text-[#6B7280] tracking-tight uppercase">agentic-crm-v1</p>
               </div>
             </Link>
           </div>
@@ -133,16 +133,16 @@ function App() {
 
           {/* Background Sync widget */}
           <div className="px-3 pb-5">
-            <div className="bg-slate-50 rounded-lg p-3.5 border border-slate-200/80">
+            <div className="bg-white rounded-lg p-3.5 border border-[#e5e7eb]">
               <div className="flex items-center gap-2 mb-1.5">
                 <span className="relative flex h-2 w-2 shrink-0">
-                  <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-green-400 opacity-60"></span>
-                  <span className="relative inline-flex rounded-full h-2 w-2 bg-green-500"></span>
+                  <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-[#3DF577] opacity-60"></span>
+                  <span className="relative inline-flex rounded-full h-2 w-2 bg-[#10b981]"></span>
                 </span>
-                <h3 className="text-[12px] font-semibold text-slate-700">Background Sync</h3>
+                <h3 className="text-[12px] font-semibold text-[#0B0B0B]">Background Sync</h3>
               </div>
-              <p className="text-[11px] font-mono text-slate-500 leading-relaxed">Agentic workers are active.</p>
-              <p className="text-[10px] font-mono text-slate-400 mt-1.5">Last sync: just now</p>
+              <p className="text-[11px] font-mono text-[#6B7280] leading-relaxed">Agentic workers are active.</p>
+              <p className="text-[10px] font-mono text-[#9ca3af] mt-1.5">Last sync: just now</p>
             </div>
           </div>
         </aside>
@@ -152,25 +152,25 @@ function App() {
           <div className="max-w-[1100px] mx-auto">
 
             {/* Header */}
-            <header className="mb-7 flex items-center justify-between bg-white rounded-xl px-4 py-3 shadow-xs border border-slate-200/80">
+            <header className="mb-7 flex items-center justify-between bg-white rounded-xl px-4 py-3 shadow-sm border border-[#e5e7eb]">
               <div className="flex items-center gap-3">
-                <div className="w-6 h-6 rounded-md flex items-center justify-center text-slate-400">
+                <div className="w-6 h-6 rounded-md flex items-center justify-center text-[#9ca3af]">
                   <Search size={14} />
                 </div>
                 <input
                   type="text"
                   placeholder="Search anything..."
-                  className="bg-transparent border-none outline-none text-[13px] font-medium text-slate-700 placeholder:text-slate-400 w-[260px]"
+                  className="bg-transparent border-none outline-none text-[13px] font-medium text-[#0B0B0B] placeholder:text-[#9ca3af] w-[260px]"
                 />
               </div>
               <div className="flex items-center gap-2.5">
                 <button
                   onClick={() => setIsAddModalOpen(true)}
-                  className="flex items-center gap-1.5 bg-blue-600 text-white px-3.5 py-2 rounded-lg text-[12px] font-semibold hover:bg-blue-700 active:scale-[0.97] transition-all duration-100 shadow-sm"
+                  className="flex items-center gap-1.5 bg-[#3DF577] text-[#0B0B0B] px-4 py-2 rounded-lg text-[13px] font-semibold hover:bg-[#34d366] active:scale-[0.97] transition-all duration-100 shadow-sm"
                 >
-                  <Plus size={13} /> Add contact
+                  <Plus size={14} /> Add contact
                 </button>
-                <div className="w-8 h-8 rounded-lg bg-slate-100 border border-slate-200 flex items-center justify-center text-slate-600 font-bold text-[11px]">
+                <div className="w-8 h-8 rounded-lg bg-[#f9fafb] border border-[#e5e7eb] flex items-center justify-center text-[#374151] font-bold text-[11px]">
                   RV
                 </div>
               </div>
@@ -266,18 +266,18 @@ function App() {
               </div>
             </div>
 
-            <div className="px-6 py-4 border-t border-slate-100 bg-slate-50/50 flex justify-end gap-2.5">
+            <div className="px-6 py-4 border-t border-[#e5e7eb] bg-[#f9fafb] flex justify-end gap-2.5">
               <button
                 onClick={closeModal}
                 disabled={isSaving}
-                className="px-4 py-2 rounded-lg text-[13px] font-semibold text-slate-600 hover:bg-slate-200 active:scale-[0.97] transition-all disabled:opacity-50"
+                className="px-4 py-2 rounded-lg text-[13px] font-semibold text-[#6B7280] hover:bg-white hover:border-[#e5e7eb] border border-transparent active:scale-[0.97] transition-all disabled:opacity-50"
               >
                 Cancel
               </button>
               <button
                 onClick={handleSaveContact}
                 disabled={isSaving}
-                className="px-4 py-2 bg-blue-600 text-white rounded-lg text-[13px] font-semibold hover:bg-blue-700 active:scale-[0.97] shadow-sm transition-all disabled:opacity-50 disabled:cursor-not-allowed"
+                className="px-4 py-2 bg-[#3DF577] text-[#0B0B0B] rounded-lg text-[13px] font-semibold hover:bg-[#34d366] active:scale-[0.97] shadow-sm transition-all disabled:opacity-50 disabled:cursor-not-allowed"
               >
                 {isSaving ? 'Saving…' : 'Save Contact'}
               </button>
