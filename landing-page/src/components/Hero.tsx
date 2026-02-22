@@ -236,7 +236,7 @@ export default function Hero() {
             {/* Rows */}
             {[
               { i: 'RL', name: 'Robby Linson', email: 'robbylinson@gmail.com', org: 'Trinity College Dublin', role: 'Student', s: 'UNKNOWN', sc: '#d97706', sf: '#fffbeb', fresh: 'NEVER', fc: '#9ca3af', risk: '—' },
-              { i: 'AP', name: 'Alex Pivovarov', email: 'alexpivovarov156@gmail.com', org: 'KGB lacky', role: 'Student', s: 'REVIEW', sc: '#d97706', sf: '#fffbeb', fresh: 'FRESH', fc: '#059669', risk: '47' },
+              { i: 'AP', name: 'Alex Pivovarov', email: 'alexpivovarov156@gmail.com', org: 'Univ. of Liverpool', role: 'Student', s: 'REVIEW', sc: '#d97706', sf: '#fffbeb', fresh: 'FRESH', fc: '#059669', risk: '47' },
               { i: 'JD', name: 'John Doe', email: 'test@catch-all-domain.com', org: 'Fake School District', role: 'Director', s: 'UNKNOWN', sc: '#d97706', sf: '#fffbeb', fresh: 'NEVER', fc: '#9ca3af', risk: '—' },
               { i: 'SC', name: 'Sarah Chen', email: 'sarah.chen@techcorp.io', org: 'TechCorp Inc.', role: 'VP Sales', s: 'VERIFIED', sc: '#059669', sf: '#f0fdf4', fresh: 'FRESH', fc: '#059669', risk: '5' },
             ].map((row) => (

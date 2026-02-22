@@ -33,7 +33,7 @@ const SCENE_DATA = [
 
 const CRM_ROWS = [
   { initials: 'RL', name: 'Robby Linson', email: 'robbylinson@gmail.com', org: 'Trinity College Dublin', role: 'Student' },
-  { initials: 'AP', name: 'Alex Pivovarov', email: 'alexpivovarov156@gmail.com', org: 'KGB lacky', role: 'Student' },
+  { initials: 'AP', name: 'Alex Pivovarov', email: 'alexpivovarov156@gmail.com', org: 'Univ. of Liverpool', role: 'Student' },
   { initials: 'JD', name: 'John Doe', email: 'test@catch-all-domain.com', org: 'Fake School District', role: 'Director' },
   { initials: 'SC', name: 'Sarah Chen', email: 'sarah.chen@techcorp.io', org: 'TechCorp Inc.', role: 'VP Sales' },
 ]
@@ -349,7 +349,7 @@ export default function TransformationAnimation() {
               {/* === CLEAN ROWS === */}
               {[
                 { initials: 'RL', name: 'Robby Linson', email: 'robbylinson@gmail.com', org: 'Trinity College Dublin', role: 'Student', status: 'VERIFIED', sc: '#059669', sf: '#d1fae5', fresh: 'FRESH', fc: '#059669', risk: 12, rc: '#059669' },
-                { initials: 'AP', name: 'Alex Pivovarov', email: 'alexpivovarov156@gmail.com', org: 'KGB lacky', role: 'Student', status: 'REVIEW', sc: '#d97706', sf: '#fef3c7', fresh: 'FRESH', fc: '#059669', risk: 47, rc: '#d97706' },
+                { initials: 'AP', name: 'Alex Pivovarov', email: 'alexpivovarov156@gmail.com', org: 'Univ. of Liverpool', role: 'Student', status: 'REVIEW', sc: '#d97706', sf: '#fef3c7', fresh: 'FRESH', fc: '#059669', risk: 47, rc: '#d97706' },
                 { initials: 'JD', name: 'John Doe', email: 'test@catch-all-domain.com', org: 'Fake School District', role: 'Director', status: 'VERIFIED', sc: '#059669', sf: '#d1fae5', fresh: 'STALE', fc: '#dc2626', risk: 83, rc: '#dc2626' },
                 { initials: 'SC', name: 'Sarah Chen', email: 'sarah.chen@techcorp.io', org: 'TechCorp Inc.', role: 'VP Sales', status: 'VERIFIED', sc: '#059669', sf: '#d1fae5', fresh: 'FRESH', fc: '#059669', risk: 5, rc: '#059669' },
               ].map((row, i) => {
