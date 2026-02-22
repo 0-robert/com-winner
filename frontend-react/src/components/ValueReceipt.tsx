@@ -81,7 +81,7 @@ export default function ValueReceipt() {
 
             {!loading && !receipt && (
                 <div className="mb-4 bg-[#fffbeb] border border-[#fde68a] rounded px-4 py-3 text-[12px] font-mono text-[#92400e]">
-                    No batch runs yet — go to Settings to trigger your first run. Showing zero values.
+                    No batch runs yet — go to Dashboard to trigger your first run. Showing zero values.
                 </div>
             )}
 
