@@ -1,5 +1,5 @@
 import { useState, useEffect } from 'react';
-import { Users, CheckCircle, AlertCircle, RefreshCw, TrendingUp, DollarSign, Clock } from 'lucide-react';
+import { Users, CheckCircle, AlertCircle, RefreshCw, TrendingUp, Clock, Play, Loader2 } from 'lucide-react';
 import type { Contact } from '../types';
 
 interface BatchReceipt {
@@ -29,6 +29,11 @@ export default function Dashboard() {
     const [contacts, setContacts] = useState<Contact[]>([]);
     const [receipts, setReceipts] = useState<BatchReceipt[]>([]);
     const [loading, setLoading] = useState(true);
+    const [limit, setLimit] = useState(50);
+    const [concurrency, setConcurrency] = useState(5);
+    const [tier, setTier] = useState<'free' | 'paid'>('free');
+    const [runStatus, setRunStatus] = useState<'idle' | 'starting' | 'started' | 'error'>('idle');
+    const [runError, setRunError] = useState<string | null>(null);
 
     useEffect(() => {
         Promise.all([
@@ -39,6 +44,26 @@ export default function Dashboard() {
             setReceipts(Array.isArray(r) ? r : []);
         }).catch(console.error).finally(() => setLoading(false));
     }, []);
+
+    async function triggerRun() {
+        setRunStatus('starting');
+        setRunError(null);
+        try {
+            const res = await fetch('/api/batch/run', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json', 'X-API-Key': API_KEY },
+                body: JSON.stringify({ limit, concurrency, tier }),
+            });
+            if (!res.ok) {
+                const body = await res.text();
+                throw new Error(body || `HTTP ${res.status}`);
+            }
+            setRunStatus('started');
+        } catch (err: any) {
+            setRunStatus('error');
+            setRunError(err.message || 'Failed to start batch run.');
+        }
+    }
 
     // ── KPIs ──────────────────────────────────────────────────────────────
     const total = contacts.length;
@@ -143,6 +168,62 @@ export default function Dashboard() {
                 )}
             </div>
 
+            {/* ── Run Agent ── */}
+            <div className="bg-white rounded border border-[#e5e7eb] p-6 shadow-sm mb-6">
+                <h2 className="text-[14px] font-bold text-[#0B0B0B] tracking-tight mb-4">Run Verification Agent</h2>
+                <div className="grid grid-cols-1 sm:grid-cols-3 gap-4 mb-4">
+                    <div>
+                        <label className="block text-[11px] font-mono font-bold text-[#6B7280] uppercase tracking-widest mb-1.5">Batch Limit</label>
+                        <input
+                            type="number"
+                            min={1}
+                            max={500}
+                            value={limit}
+                            onChange={e => setLimit(Number(e.target.value))}
+                            className="w-full border border-[#e5e7eb] rounded px-3 py-2 text-[13px] font-mono text-[#0B0B0B] focus:outline-none focus:border-[#0B0B0B]"
+                        />
+                    </div>
+                    <div>
+                        <label className="block text-[11px] font-mono font-bold text-[#6B7280] uppercase tracking-widest mb-1.5">Concurrency</label>
+                        <input
+                            type="number"
+                            min={1}
+                            max={20}
+                            value={concurrency}
+                            onChange={e => setConcurrency(Number(e.target.value))}
+                            className="w-full border border-[#e5e7eb] rounded px-3 py-2 text-[13px] font-mono text-[#0B0B0B] focus:outline-none focus:border-[#0B0B0B]"
+                        />
+                    </div>
+                    <div>
+                        <label className="block text-[11px] font-mono font-bold text-[#6B7280] uppercase tracking-widest mb-1.5">Tier</label>
+                        <select
+                            value={tier}
+                            onChange={e => setTier(e.target.value as 'free' | 'paid')}
+                            className="w-full border border-[#e5e7eb] rounded px-3 py-2 text-[13px] font-mono text-[#0B0B0B] focus:outline-none focus:border-[#0B0B0B] bg-white"
+                        >
+                            <option value="free">Free (scrape only)</option>
+                            <option value="paid">Paid (Claude AI)</option>
+                        </select>
+                    </div>
+                </div>
+                <div className="flex items-center gap-4">
+                    <button
+                        onClick={triggerRun}
+                        disabled={runStatus === 'starting' || runStatus === 'started'}
+                        className="flex items-center gap-2 px-5 py-2.5 bg-[#3DF577] border border-transparent rounded text-[12px] font-mono font-bold text-[#0B0B0B] hover:bg-[#34d366] transition-colors shadow-sm uppercase tracking-widest disabled:opacity-50 disabled:cursor-not-allowed"
+                    >
+                        {runStatus === 'starting' ? <Loader2 size={14} className="animate-spin" /> : <Play size={14} />}
+                        {runStatus === 'starting' ? 'Starting…' : 'Run Agent'}
+                    </button>
+                    {runStatus === 'started' && (
+                        <span className="text-[11px] font-mono text-[#10b981] font-bold">Agent started — check Value Receipt for results.</span>
+                    )}
+                    {runStatus === 'error' && runError && (
+                        <span className="text-[11px] font-mono text-[#ef4444]">{runError}</span>
+                    )}
+                </div>
+            </div>
+
             {/* ── Recent Batch Runs ── */}
             <div className="bg-white rounded border border-[#e5e7eb] p-6 shadow-sm">
                 <h2 className="text-[14px] font-bold text-[#0B0B0B] tracking-tight mb-4">Recent Batch Runs</h2>
@@ -151,7 +232,7 @@ export default function Dashboard() {
                     <div className="flex flex-col items-center justify-center py-12 text-[#9ca3af]">
                         <Clock size={28} className="mb-3 opacity-40" />
                         <p className="text-[13px] font-medium text-[#6B7280]">No batch runs yet</p>
-                        <p className="text-[11px] font-mono mt-1">Go to Settings to trigger your first run</p>
+                        <p className="text-[11px] font-mono mt-1">Use the Run Agent button below to trigger your first run</p>
                     </div>
                 ) : (
                     <div className="overflow-x-auto">
