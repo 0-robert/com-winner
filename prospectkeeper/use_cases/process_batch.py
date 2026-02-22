@@ -7,6 +7,7 @@ writes results back to Supabase, and generates the Value-Proof Receipt.
 
 import asyncio
 import logging
+import time
 import uuid
 from dataclasses import dataclass, field
 from typing import List, Optional
@@ -19,6 +20,8 @@ from .verify_contact import VerifyContactUseCase, VerifyContactRequest
 from .calculate_roi import CalculateROIUseCase, CalculateROIRequest
 
 logger = logging.getLogger(__name__)
+
+_SEP = "=" * 70
 
 
 @dataclass
@@ -43,7 +46,7 @@ class ProcessBatchUseCase:
     - Reads contacts from the repository
     - Verifies each contact (with bounded concurrency)
     - Writes updated contacts and results back to DB
-    - Computes and returns the Value-Proof Receipt
+    - Computes and persists the Value-Proof Receipt
     """
 
     def __init__(
@@ -57,51 +60,134 @@ class ProcessBatchUseCase:
         self.roi = roi_use_case
 
     async def execute(self, request: ProcessBatchRequest) -> ProcessBatchResponse:
-        logger.info(
-            f"[Batch {request.batch_id}] Starting batch run — limit={request.limit}"
-        )
+        batch_id = request.batch_id
+        wall_start = time.time()
 
+        logger.info(_SEP)
+        logger.info(f"[Batch:{batch_id[:8]}] *** BATCH RUN STARTING ***")
+        logger.info(
+            f"[Batch:{batch_id[:8]}] tier={request.tier!r} | "
+            f"limit={request.limit} | concurrency={request.concurrency}"
+        )
+        logger.info(_SEP)
+
+        # ── Load contacts ─────────────────────────────────────────────────
         contacts = await self.repository.get_contacts_for_verification(
             limit=request.limit
         )
-        logger.info(f"[Batch {request.batch_id}] {len(contacts)} contacts loaded")
+        total = len(contacts)
+        logger.info(f"[Batch:{batch_id[:8]}] Loaded {total} contacts from database")
 
-        # Bounded concurrent verification
+        if total == 0:
+            logger.warning(
+                f"[Batch:{batch_id[:8]}] No contacts eligible for verification — "
+                "check that contacts exist and none are opted-out or already flagged."
+            )
+
+        # ── Bounded concurrent verification ────────────────────────────────
         semaphore = asyncio.Semaphore(request.concurrency)
         results: List[VerificationResult] = []
         errors: List[str] = []
+        completed_count = 0
+        count_lock = asyncio.Lock()
 
-        async def verify_one(contact: Contact):
+        async def verify_one(contact: Contact, idx: int) -> None:
+            nonlocal completed_count
             async with semaphore:
+                agent_wall = time.time()
+                logger.info(
+                    f"[Batch:{batch_id[:8]}] [{idx + 1}/{total}] "
+                    f"AGENT STARTING → {contact.name!r} | "
+                    f"{contact.title!r} @ {contact.organization!r} | "
+                    f"id={contact.id}"
+                )
+
                 try:
                     result = await self.verify.execute(
                         VerifyContactRequest(contact=contact, tier=request.tier)
                     )
                     results.append(result)
                     await self._apply_result(contact, result)
-                except Exception as e:
-                    logger.error(f"[Batch] Error verifying {contact.id}: {e}")
-                    errors.append(f"{contact.id}: {e}")
 
-        await asyncio.gather(*[verify_one(c) for c in contacts])
+                    elapsed = time.time() - agent_wall
+                    async with count_lock:
+                        completed_count += 1
+                        done = completed_count
 
-        # Generate Value-Proof Receipt
+                    replacement_tag = (
+                        f"replacement={result.replacement_name!r}"
+                        if result.has_replacement
+                        else "no-replacement"
+                    )
+                    logger.info(
+                        f"[Batch:{batch_id[:8]}] [{done}/{total}] "
+                        f"AGENT DONE ✓ → {contact.name!r} | "
+                        f"status={result.status.value} | "
+                        f"{replacement_tag} | "
+                        f"flagged={result.needs_human_review} | "
+                        f"cost=${result.economics.total_api_cost_usd:.5f} | "
+                        f"tokens={result.economics.tokens_used} | "
+                        f"elapsed={elapsed:.2f}s"
+                    )
+
+                except Exception as exc:
+                    elapsed = time.time() - agent_wall
+                    async with count_lock:
+                        completed_count += 1
+                        done = completed_count
+
+                    logger.error(
+                        f"[Batch:{batch_id[:8]}] [{done}/{total}] "
+                        f"AGENT ERROR ✗ → {contact.name!r} @ {contact.organization!r} | "
+                        f"error={exc!r} | elapsed={elapsed:.2f}s",
+                        exc_info=True,
+                    )
+                    errors.append(f"{contact.id} ({contact.name}): {exc}")
+
+        await asyncio.gather(*[verify_one(c, i) for i, c in enumerate(contacts)])
+
+        # ── Generate Value-Proof Receipt ───────────────────────────────────
         economics_list = [r.economics for r in results]
         roi_response = self.roi.execute(
             CalculateROIRequest(
                 economics_list=economics_list,
-                batch_id=request.batch_id,
+                batch_id=batch_id,
             )
         )
+        receipt = roi_response.receipt
 
+        # ── Persist receipt to database (was missing — now fixed) ──────────
+        try:
+            await self.repository.save_batch_receipt(receipt)
+            logger.info(
+                f"[Batch:{batch_id[:8]}] Receipt persisted to batch_receipts table OK"
+            )
+        except Exception as exc:
+            logger.error(
+                f"[Batch:{batch_id[:8]}] FAILED to save receipt to DB: {exc!r}",
+                exc_info=True,
+            )
+
+        # ── Final summary ──────────────────────────────────────────────────
+        total_elapsed = time.time() - wall_start
+        logger.info(_SEP)
+        logger.info(f"[Batch:{batch_id[:8]}] *** BATCH RUN COMPLETE ***")
+        logger.info(f"[Batch:{batch_id[:8]}] {receipt.format_receipt()}")
         logger.info(
-            f"[Batch {request.batch_id}] Complete. "
-            f"{roi_response.receipt.format_receipt()}"
+            f"[Batch:{batch_id[:8]}] "
+            f"total_elapsed={total_elapsed:.2f}s | "
+            f"successes={len(results)} | "
+            f"errors={len(errors)}"
         )
+        if errors:
+            logger.error(f"[Batch:{batch_id[:8]}] ── ERROR SUMMARY ──")
+            for err in errors:
+                logger.error(f"[Batch:{batch_id[:8]}]   {err}")
+        logger.info(_SEP)
 
         return ProcessBatchResponse(
-            batch_id=request.batch_id,
-            receipt=roi_response.receipt,
+            batch_id=batch_id,
+            receipt=receipt,
             results=results,
             errors=errors,
         )
@@ -122,9 +208,13 @@ class ProcessBatchUseCase:
 
         # Persist updated contact
         await self.repository.save_contact(contact)
+        logger.debug(
+            f"[Batch] save_contact OK: {contact.name!r} → status={contact.status.value}"
+        )
 
         # Persist verification audit record
         await self.repository.save_verification_result(result)
+        logger.debug(f"[Batch] save_verification_result OK: contact_id={contact.id}")
 
         # If a replacement was found, insert new contact
         if result.has_replacement:
@@ -137,6 +227,6 @@ class ProcessBatchUseCase:
             )
             await self.repository.insert_contact(replacement)
             logger.info(
-                f"[Batch] Inserted replacement contact: {replacement.name} "
-                f"@ {replacement.organization}"
+                f"[Batch] Inserted replacement contact: {replacement.name!r} "
+                f"@ {replacement.organization!r} | new_id={replacement.id}"
             )
