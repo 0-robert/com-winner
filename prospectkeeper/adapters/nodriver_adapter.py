@@ -93,22 +93,36 @@ class NoDriverAdapter(ILinkedInGateway):
             # browser.get() usually creates a new tab if no tab is active, 
             # or uses the existing one.
             page = await browser.get(linkedin_url)
-            
-            # Wait for initial load
-            await asyncio.sleep(5)
+
+            # Wait for LinkedIn SPA to finish rendering — poll until the
+            # loading spinner is gone (main-content or profile section appears)
+            for _ in range(20):
+                await asyncio.sleep(1.5)
+                current_url = page.target.url or ""
+                # Stop early if we hit an auth wall
+                if any(kw in current_url for kw in ("authwall", "checkpoint", "login", "uas/authenticate")):
+                    break
+                try:
+                    html_check = await page.get_content()
+                    # Wait until actual list items are rendered — artdeco-card alone can be
+                    # skeleton loaders (pvs-loader), so we require artdeco-list__item which
+                    # only appears once the experience/education sections have fully loaded.
+                    if html_check and 'artdeco-list__item' in html_check:
+                        logger.info("[Tier2] Profile content detected — proceeding")
+                        break
+                except Exception:
+                    pass
 
             # ── 3. Auth-wall check ────────────────────────────────────────────
-            current_url = page.target.url
+            current_url = page.target.url or ""
             logger.debug(f"[Tier2] Current URL: {current_url}")
-            
+
             if any(kw in current_url for kw in ("authwall", "checkpoint", "login", "uas/authenticate")):
                 logger.warning("[Tier2] Auth wall detected")
                 await page.save_screenshot("debug_linkedin_authwall.png")
                 return LinkedInResult(success=False, blocked=True, error="Auth wall")
 
             # ── 4. Get main profile HTML ──────────────────────────────────────
-            # Additional wait for SPA content to settle
-            await page.sleep(2)
             await page.save_screenshot("debug_linkedin.png")
             
             html = await self._get_html(page)
@@ -350,12 +364,45 @@ class NoDriverAdapter(ILinkedInGateway):
         matched_entry = next((e for e in current_entries if _entry_matches(e)), None) if org_lower else None
         exp_match = matched_entry is not None
         headline_match = bool(org_lower) and org_lower in headline.lower()
-        still_at = exp_match or headline_match
+
+        # Check education section — covers students whose org is a university.
+        # An education entry is "current" if it contains "present" OR its end year is
+        # in the future (e.g. "Sep 2025 - Jul 2029" → end year 2029 > current year).
+        import datetime
+        _current_year = datetime.datetime.now().year
+
+        def _edu_is_current(e: dict) -> bool:
+            dr = (e.get("dateRange") or "").lower()
+            if not dr:
+                return False
+            if "present" in dr:
+                return True
+            # Extract all 4-digit years; the last one is the end year
+            years = re.findall(r"\b((?:19|20)\d{2})\b", dr)
+            if years:
+                end_year = int(years[-1])
+                return end_year >= _current_year
+            return False
+
+        edu_match = bool(org_lower) and any(
+            org_lower in (e.get("institution") or "").lower()
+            for e in education
+            if _edu_is_current(e)
+        )
+
+        still_at = exp_match or headline_match or edu_match
 
         current_title: Optional[str] = None
         if exp_match and matched_entry:
             # Use the title from the entry that actually matched the org.
             current_title = matched_entry.get("title") or None
+        elif edu_match:
+            # For students, derive title from degree field if available.
+            edu_entry = next(
+                (e for e in education if org_lower in (e.get("institution") or "").lower() and _edu_is_current(e)),
+                None,
+            )
+            current_title = edu_entry.get("degree") or "Student" if edu_entry else "Student"
         elif current_entries and not org_lower:
             # No org supplied — just return the most recent current role.
             current_title = current_entries[0].get("title") or None
@@ -366,7 +413,7 @@ class NoDriverAdapter(ILinkedInGateway):
         logger.info(
             f"[Tier2] {contact_name} @ {organization!r}: "
             f"still_at={still_at} title={current_title!r} "
-            f"(exp={exp_match} headline={headline_match} "
+            f"(exp={exp_match} headline={headline_match} edu={edu_match} "
             f"current_roles={len(current_entries)})"
         )
 

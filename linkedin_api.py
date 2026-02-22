@@ -31,6 +31,7 @@ import httpx
 from dotenv import load_dotenv
 from fastapi import FastAPI, Header, HTTPException, status
 from fastapi.middleware.cors import CORSMiddleware
+from fastapi.responses import StreamingResponse
 from pydantic import BaseModel, Field, HttpUrl
 
 # ── Bootstrap ──────────────────────────────────────────────────────────────
@@ -43,6 +44,7 @@ from prospectkeeper.adapters.nodriver_adapter import NoDriverAdapter
 from prospectkeeper.infrastructure.config import Config
 from prospectkeeper.infrastructure.container import Container
 from prospectkeeper.adapters.supabase_adapter import SupabaseAdapter
+from prospectkeeper.use_cases.verify_contact_agent import VerifyContactAgentUseCase
 
 logging.basicConfig(
     level=logging.INFO,
@@ -653,4 +655,49 @@ async def send_all_emails(
         total_sent=total_ok,
         total_failed=total_fail,
         results=results,
+    )
+
+
+# ── Agentic verification — streaming SSE endpoint ─────────────────────────────
+
+@app.post(
+    "/api/agent/verify/{contact_id}",
+    summary="Run AI verification agent with real-time streaming",
+    description=(
+        "Launches a Claude tool_use agent that autonomously verifies the contact's "
+        "employment status by calling scraper, LinkedIn, and email tools. "
+        "Returns a Server-Sent Events stream of agent reasoning and tool calls."
+    ),
+    responses={
+        200: {"description": "SSE stream of agent events (text/event-stream)"},
+        401: {"description": "Missing or invalid X-API-Key header."},
+        404: {"description": "Contact not found."},
+    },
+)
+async def run_verification_agent(
+    contact_id: str,
+    x_api_key: str = Header(..., description="Service API key"),
+) -> StreamingResponse:
+    _require_api_key(x_api_key)
+
+    container = _get_container()
+    agent = VerifyContactAgentUseCase(
+        repository=container.repository,
+        scraper=container.scraper,
+        linkedin=container.linkedin,
+        email_sender=container.email_sender,
+    )
+
+    async def event_stream():
+        async for event in agent.execute(contact_id):
+            yield f"data: {json.dumps(event)}\n\n"
+
+    return StreamingResponse(
+        event_stream(),
+        media_type="text/event-stream",
+        headers={
+            "Cache-Control": "no-cache",
+            "Connection": "keep-alive",
+            "X-Accel-Buffering": "no",
+        },
     )
