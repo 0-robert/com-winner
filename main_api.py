@@ -410,6 +410,7 @@ async def send_all_emails(req: SendAllRequest, _: None = Depends(_auth)):
             else:
                 total_failed += 1
                 logger.warning(f"[email/send-all] Failed: {contact.email} — {res.error}")
+            await asyncio.sleep(0.6)
 
     await asyncio.gather(*[_send(ct) for ct in eligible])
     return {"total_sent": total_sent, "total_failed": total_failed}
