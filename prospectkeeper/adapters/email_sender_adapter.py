@@ -26,7 +26,7 @@ class EmailSenderAdapter(IEmailSenderGateway):
     Adapter that sends information-review emails using the Resend API.
     """
 
-    def __init__(self, api_key: str = None, from_email: str = "hello@robbylinson.dev"):
+    def __init__(self, api_key: str = None, from_email: str = "rolodex@robbylinson.dev"):
         self.api_key = api_key or os.getenv("RESEND_API_KEY")
         self.from_email = from_email
 
