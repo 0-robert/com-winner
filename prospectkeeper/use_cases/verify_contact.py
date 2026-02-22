@@ -56,21 +56,26 @@ class VerifyContactUseCase:
         context_text = None
 
         logger.info(
-            f"[Verify] Starting {tier}-tier verification for "
-            f"{contact.name} @ {contact.organization}"
+            f"[Verify] ── START ── {contact.name!r} | "
+            f"tier={tier!r} | org={contact.organization!r} | "
+            f"email={contact.email!r} | id={contact.id}"
         )
 
         # ── Free Tier: Send confirmation email ───────────────────────────────
         if tier == "free":
             economics.highest_tier_used = 1
             logger.info(
-                f"[Free Tier] Sending confirmation email to {contact.name}."
+                f"[Free Tier] Sending confirmation email → {contact.name!r} <{contact.email}>"
             )
             send_result = await self.email_sender.send_confirmation(
                 contact=contact,
             )
 
             if send_result.success:
+                logger.info(
+                    f"[Free Tier] Email sent OK → {contact.name!r} <{contact.email}> "
+                    f"| status=pending_confirmation"
+                )
                 return VerificationResult(
                     contact_id=contact.id,
                     status=ContactStatus.PENDING_CONFIRMATION,
@@ -79,6 +84,10 @@ class VerifyContactUseCase:
                     f"{contact.email}?'",
                 )
             else:
+                logger.warning(
+                    f"[Free Tier] Email FAILED → {contact.name!r} <{contact.email}> "
+                    f"| error={send_result.error!r} | flagging for review"
+                )
                 economics.flagged_for_review = True
                 return VerificationResult(
                     contact_id=contact.id,
@@ -91,10 +100,19 @@ class VerifyContactUseCase:
         # ── Paid Tier: Website Scraping + Claude AI ──────────────────────────
 
         # Step 1: District/Company Website Scraping
+        logger.info(
+            f"[Paid Tier] Step 1 — scraping district site for {contact.name!r} | "
+            f"url={contact.district_website!r}"
+        )
         scrape_result = await self.scraper.find_contact_on_district_site(
             contact_name=contact.name,
             organization=contact.organization,
             district_website=contact.district_website,
+        )
+        logger.info(
+            f"[Paid Tier] Scrape result → success={scrape_result.success} | "
+            f"person_found={scrape_result.person_found} | "
+            f"evidence_url={scrape_result.evidence_url!r}"
         )
 
         if scrape_result.success:
@@ -104,7 +122,8 @@ class VerifyContactUseCase:
 
             if scrape_result.person_found:
                 logger.info(
-                    f"[Paid Tier] Confirmed active via website: {contact.name}"
+                    f"[Paid Tier] CONFIRMED ACTIVE via website → {contact.name!r} | "
+                    f"evidence={scrape_result.evidence_url!r}"
                 )
                 economics.verified = True
                 return VerificationResult(
@@ -116,7 +135,10 @@ class VerifyContactUseCase:
                 )
 
         # Step 2: Claude AI Deep Research
-        logger.info(f"[Paid Tier] Escalating to Claude for {contact.name}")
+        logger.info(
+            f"[Paid Tier] Step 2 — escalating to Claude AI for {contact.name!r} | "
+            f"scrape_failed_or_not_found=True | context_chars={len(context_text or '')}"
+        )
         economics.highest_tier_used = 2
 
         ai_result = await self.ai.research_contact(
@@ -125,6 +147,12 @@ class VerifyContactUseCase:
             title=contact.title,
             context_text=context_text,
         )
+        logger.info(
+            f"[Paid Tier] Claude result → success={ai_result.success} | "
+            f"still_active={ai_result.contact_still_active} | "
+            f"replacement={ai_result.replacement_name!r} | "
+            f"cost=${ai_result.cost_usd:.5f} | tokens={ai_result.total_tokens}"
+        )
 
         economics.claude_cost_usd += ai_result.cost_usd
         economics.tokens_used += ai_result.total_tokens
@@ -132,6 +160,9 @@ class VerifyContactUseCase:
 
         if ai_result.success and ai_result.contact_still_active is not None:
             if ai_result.contact_still_active:
+                logger.info(
+                    f"[Paid Tier] CONFIRMED ACTIVE via Claude → {contact.name!r}"
+                )
                 economics.verified = True
                 return VerificationResult(
                     contact_id=contact.id,
@@ -144,7 +175,11 @@ class VerifyContactUseCase:
                 # Departed — check if replacement was found
                 has_replacement = bool(ai_result.replacement_name)
                 economics.replacement_found = has_replacement
-
+                logger.info(
+                    f"[Paid Tier] INACTIVE (departed) → {contact.name!r} | "
+                    f"replacement_found={has_replacement} | "
+                    f"replacement_name={ai_result.replacement_name!r}"
+                )
                 return VerificationResult(
                     contact_id=contact.id,
                     status=ContactStatus.INACTIVE,
@@ -160,8 +195,9 @@ class VerifyContactUseCase:
 
         # ── All steps exhausted — flag for human review ──────────────────────
         logger.warning(
-            f"[All Steps] Exhausted all verification for {contact.name} "
-            f"— flagging for review"
+            f"[Verify] All steps exhausted for {contact.name!r} | "
+            f"ai_success={ai_result.success} | ai_active={ai_result.contact_still_active} "
+            f"→ flagging for human review"
         )
         economics.flagged_for_review = True
 
