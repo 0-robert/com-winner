@@ -119,6 +119,12 @@ class InboundEmailRequest(BaseModel):
     subject: Optional[str] = ""
 
 
+class BatchRunRequest(BaseModel):
+    tier: str = "free"
+    limit: int = 50
+    concurrency: int = 5
+
+
 # ── Health ────────────────────────────────────────────────────────────────────
 
 
@@ -474,3 +480,104 @@ async def agent_verify(contact_id: str, _: None = Depends(_auth)):
             "X-Accel-Buffering": "no",
         },
     )
+
+
+# ── Config status ─────────────────────────────────────────────────────────────
+
+
+@app.get("/config-status", tags=["meta"])
+async def config_status(_: None = Depends(_auth)):
+    """Return which API keys are configured and current batch settings."""
+    return {
+        "anthropic_configured": bool(os.getenv("ANTHROPIC_API_KEY")),
+        "supabase_configured": bool(os.getenv("SUPABASE_URL") and os.getenv("SUPABASE_SERVICE_KEY")),
+        "langfuse_configured": bool(os.getenv("LANGFUSE_SECRET_KEY") and os.getenv("LANGFUSE_PUBLIC_KEY")),
+        "zerobounce_configured": bool(os.getenv("ZEROBOUNCE_API_KEY")),
+        "resend_configured": bool(os.getenv("RESEND_API_KEY")),
+        "batch_limit": int(os.getenv("BATCH_LIMIT", 50)),
+        "batch_concurrency": int(os.getenv("BATCH_CONCURRENCY", 5)),
+    }
+
+
+# ── Batch receipts ────────────────────────────────────────────────────────────
+
+
+@app.get("/batch-receipts", tags=["batch"])
+async def get_batch_receipts(limit: int = 10, _: None = Depends(_auth)):
+    """Return the most recent batch run receipts."""
+    c = get_container()
+    response = c.repository.client.table("batch_receipts").select("*").order("run_at", desc=True).limit(limit).execute()
+    return response.data
+
+
+# ── Contacts — review queue ───────────────────────────────────────────────────
+
+
+@app.get("/contacts/review", tags=["contacts"])
+async def contacts_for_review(_: None = Depends(_auth)):
+    """Return contacts flagged for human review."""
+    c = get_container()
+    contacts = await c.repository.get_all_contacts()
+    return [
+        {
+            "id": ct.id,
+            "name": ct.name,
+            "email": ct.email,
+            "title": ct.title,
+            "organization": ct.organization,
+            "status": ct.status.value,
+            "needs_human_review": ct.needs_human_review,
+            "review_reason": ct.review_reason,
+            "linkedin_url": ct.linkedin_url,
+            "district_website": ct.district_website,
+        }
+        for ct in contacts
+        if ct.needs_human_review
+    ]
+
+
+# ── Batch run trigger ─────────────────────────────────────────────────────────
+
+
+@app.post("/batch/run", tags=["batch"])
+async def trigger_batch(req: BatchRunRequest, _: None = Depends(_auth)):
+    """Trigger a background batch verification run."""
+    import uuid as _uuid
+    from prospectkeeper.use_cases.process_batch import ProcessBatchRequest
+
+    batch_id = str(_uuid.uuid4())
+    logger.info(
+        f"[API] /batch/run triggered | batch_id={batch_id} "
+        f"tier={req.tier!r} limit={req.limit} concurrency={req.concurrency}"
+    )
+
+    async def _run():
+        try:
+            c = get_container()
+            response = await c.process_batch_use_case.execute(
+                ProcessBatchRequest(
+                    tier=req.tier,
+                    limit=req.limit,
+                    concurrency=req.concurrency,
+                    batch_id=batch_id,
+                )
+            )
+            logger.info(
+                f"[API] Batch run finished | batch_id={batch_id} "
+                f"processed={response.receipt.contacts_processed} "
+                f"errors={len(response.errors)}"
+            )
+        except Exception as e:
+            logger.error(
+                f"[API] Batch run FAILED | batch_id={batch_id} | error={e!r}",
+                exc_info=True,
+            )
+
+    asyncio.create_task(_run())
+    return {
+        "status": "started",
+        "batch_id": batch_id,
+        "tier": req.tier,
+        "limit": req.limit,
+        "concurrency": req.concurrency,
+    }
