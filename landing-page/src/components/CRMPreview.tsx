@@ -6,7 +6,7 @@ gsap.registerPlugin(ScrollTrigger)
 
 const CONTACTS = [
   { i: 'RL', name: 'Robby Linson', email: 'robbylinson@gmail.com', org: 'Trinity College Dublin', role: 'Student', status: 'UNKNOWN', sc: '#d97706', sf: '#fffbeb', fresh: 'NEVER', fc: '#9ca3af', risk: null },
-  { i: 'AP', name: 'Alex Pivovarov', email: 'alexpivovarov156@gmail.com', org: 'KGB lacky', role: 'Student', status: 'REVIEW', sc: '#d97706', sf: '#fffbeb', fresh: 'FRESH', fc: '#059669', risk: 47 },
+  { i: 'AP', name: 'Alex Pivovarov', email: 'alexpivovarov156@gmail.com', org: 'Univ. of Liverpool', role: 'Student', status: 'REVIEW', sc: '#d97706', sf: '#fffbeb', fresh: 'FRESH', fc: '#059669', risk: 47 },
   { i: 'JD', name: 'John Doe', email: 'test@catch-all-domain.com', org: 'Fake School District', role: 'Director of Special Ed...', status: 'UNKNOWN', sc: '#d97706', sf: '#fffbeb', fresh: 'NEVER', fc: '#9ca3af', risk: null },
   { i: 'SC', name: 'Sarah Chen', email: 'sarah.chen@techcorp.io', org: 'TechCorp Inc.', role: 'VP Sales', status: 'VERIFIED', sc: '#059669', sf: '#f0fdf4', fresh: 'FRESH', fc: '#059669', risk: 5 },
 ]
@@ -75,7 +75,7 @@ export default function CRMPreview() {
             </div>
             <div className="flex-1 flex justify-center">
               <div className="bg-white border border-[#e5e7eb] rounded px-3 py-1 text-xs text-[#9ca3af] flex items-center gap-1.5">
-                <span>🔒</span> app.prospectkeeper.com
+                <span>🔒</span> app.rolodex.com
               </div>
             </div>
           </div>
@@ -84,14 +84,8 @@ export default function CRMPreview() {
           <div className="flex min-h-0">
             {/* Sidebar */}
             <div className="w-52 bg-white border-r border-[#f3f4f6] flex-shrink-0 hidden md:flex flex-col p-4">
-              <div className="flex items-center gap-2 mb-8 px-1">
-                <div className="w-7 h-7 rounded-lg bg-[#111827] flex items-center justify-center">
-                  <span className="text-white text-xs font-bold" style={{ fontFamily: 'var(--font-serif)' }}>PK</span>
-                </div>
-                <div>
-                  <div className="text-[#111827] text-xs font-semibold" style={{ fontFamily: 'var(--font-sans)' }}>ProspectKeeper</div>
-                  <div className="text-[#9ca3af] text-[9px]">AGENTIC-CRM-V1</div>
-                </div>
+              <div className="mb-8 px-1">
+                <img src="/rolodex-logo.svg" alt="rolodex" className="h-6 w-auto" />
               </div>
 
               {[
