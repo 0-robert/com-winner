@@ -12,7 +12,7 @@ import sys
 import os
 
 from dotenv import load_dotenv
-load_dotenv("~/Projects/com-winner/.env")
+load_dotenv()
 
 logging.basicConfig(
     level=logging.DEBUG,

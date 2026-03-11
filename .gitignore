@@ -8,3 +8,6 @@ __pycache__/
 *.pyo
 linkedinkeys.json
 landing-page/node_modules/*
+*.txt
+!requirements.txt
+!.agents/skills/frontend-design/LICENSE.txt
