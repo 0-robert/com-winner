@@ -144,18 +144,18 @@ flowchart LR
     end
 
     subgraph API[FastAPI backend]
-        E[/contacts/]
-        F[/contacts/review/]
-        G[/agent/verify/{id}/]
-        H[/batch/run — SSE/]
-        I[/batch-receipts/]
-        J[/langfuse-stats/]
+        E["/contacts"]
+        F["/contacts/review"]
+        G["/agent/verify/:id"]
+        H["/batch/run (SSE)"]
+        I["/batch-receipts"]
+        J["/langfuse-stats"]
     end
 
     subgraph Engine[Verification Engine]
-        T1[Tier 1: ZeroBounce + Website]
-        T2[Tier 2: CamoUFox / LinkedIn]
-        T3[Tier 3: Claude deep research]
+        T1["Tier 1: ZeroBounce + Website"]
+        T2["Tier 2: CamoUFox / LinkedIn"]
+        T3["Tier 3: Claude deep research"]
     end
 
     UI <--> API
